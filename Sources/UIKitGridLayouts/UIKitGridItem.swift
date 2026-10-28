@@ -57,7 +57,7 @@ public struct UIKitGridItem: Sendable {
     /// - Parameters:
     ///   - size: 行或列的尺寸规则，默认值为 flexible(minimum: 10, maximum: .infinity)。
     ///   - spacing: 与下一条轨道的间距，单位为点。必须是有限非负数；nil 表示 8 点。
-    /// - Important: 布局初始化时验证参数。违反尺寸或间距约束会触发前置条件失败。
+    /// - Important: 布局初始化或调用分区工厂时验证参数。违反尺寸或间距约束会触发前置条件失败。
     public init(_ size: Size = .flexible(), spacing: CGFloat? = nil) {
         self.size = size
         self.spacing = spacing

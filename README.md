@@ -38,14 +38,14 @@ Swift tools 版本与 iOS 部署版本是独立要求。使用新编译器不要
 https://github.com/astralchen/UIKitGridLayouts.git
 ```
 
-首个版本为 [0.1.0](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.1.0)。在 Xcode 中选择 **Exact Version**，填写 `0.1.0`，然后将 `UIKitGridLayouts` 产品加入 App target。
+当前版本为 [0.2.0](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.2.0)。在 Xcode 中选择 **Exact Version**，填写 `0.2.0`，然后将 `UIKitGridLayouts` 产品加入 App target。
 
-在另一个 Swift Package 中使用以下版本范围，允许更新到 `0.1.x`，不自动跨到 `0.2.0`：
+在另一个 Swift Package 中使用以下版本范围，允许更新到 `0.2.x`，不自动跨到 `0.3.0`：
 
 ```swift
 .package(
     url: "https://github.com/astralchen/UIKitGridLayouts.git",
-    .upToNextMinor(from: "0.1.0")
+    .upToNextMinor(from: "0.2.0")
 )
 ```
 
@@ -98,6 +98,83 @@ let layout = UIKitLazyHGridLayout(
 
 `rows` 控制行高，`UIKitGridItem.spacing` 控制行间距，布局初始化器的 `spacing` 控制列间距。整个集合视图沿水平方向滚动。
 
+## 每个分区使用不同布局
+
+从 `0.2.0` 起提供 `makeSection`，允许每个分区独立配置布局；`0.1.0` 不包含此 API。
+
+需要整个集合视图使用同一组网格定义时，可直接创建 `UIKitLazyVGridLayout` 或 `UIKitLazyHGridLayout`。需要每个分区各自配置时，在外层 `sectionProvider` 中调用分区工厂：
+
+```swift
+let configuration = UICollectionViewCompositionalLayoutConfiguration()
+configuration.scrollDirection = .vertical
+configuration.contentInsetsReference = .safeArea
+configuration.interSectionSpacing = 24
+
+let layout = UICollectionViewCompositionalLayout(
+    sectionProvider: { sectionIndex, environment in
+        switch sectionIndex {
+        case 0:
+            return UIKitLazyVGridLayout.makeSection(
+                columns: [UIKitGridItem(.fixed(72)), UIKitGridItem(.fixed(72))],
+                alignment: .leading,
+                spacing: 8,
+                rowHeight: 48,
+                environment: environment
+            )
+        case 1:
+            return UIKitLazyVGridLayout.makeSection(
+                columns: [UIKitGridItem(.adaptive(minimum: 90), spacing: 12)],
+                spacing: 16,
+                rowHeight: 80,
+                contentInsets: .init(top: 8, leading: 16, bottom: 16, trailing: 16),
+                environment: environment
+            )
+        default:
+            // 此分区完全使用 UIKit 原生布局，也可设置正交滚动。
+            let item = NSCollectionLayoutItem(layoutSize: .init(
+                widthDimension: .fractionalWidth(1), heightDimension: .fractionalHeight(1)
+            ))
+            let group = NSCollectionLayoutGroup.horizontal(
+                layoutSize: .init(widthDimension: .fractionalWidth(0.8), heightDimension: .absolute(100)),
+                subitems: [item]
+            )
+            let section = NSCollectionLayoutSection(group: group)
+            section.orthogonalScrollingBehavior = .continuousGroupLeadingBoundary
+            return section
+        }
+    },
+    configuration: configuration
+)
+```
+
+横向集合视图将外层 `configuration.scrollDirection` 设为 `.horizontal`，在 provider 内使用：
+
+```swift
+let section = UIKitLazyHGridLayout.makeSection(
+    rows: [UIKitGridItem(.fixed(60)), UIKitGridItem(.flexible(minimum: 80))],
+    alignment: .top,
+    spacing: 16,
+    columnWidth: 120,
+    environment: environment
+)
+```
+
+- 每次调用返回新的 `NSCollectionLayoutSection`。各分区可独立配置轨道、对齐、间距、主轴尺寸、页眉页脚和吸附，也可继续设置背景 decoration、辅助视图和其他 section 属性。
+- 外层 layout 管理整体滚动方向、安全区域参考、分区间距和 decoration 注册；数据源管理分区数、cell 与辅助视图。
+- `contentInsets` 为 nil 时沿用原有主轴留白规则；显式传入时替换四边，交叉轴留白在轨道计算前扣除一次。不要在返回后修改交叉轴 inset 并期待轨道自动重算。
+- 每次 provider 回调使用当次 `environment` 重新创建分区，以响应容器尺寸变化。
+- 一个 layout 只有一个整体滚动方向。V/H 工厂分别按纵向/横向宿主的有效宽度/高度计算；不能直接混用两者就获得独立滚动方向。局部横向轮播可像示例中那样使用原生 `orthogonalScrollingBehavior` 分区。
+
+示例 App 的“多分区”入口展示 fixed、flexible、adaptive、混排和原生横向轮播五个独立分区。
+
+| 独立 fixed / flexible / adaptive 分区 | 混排分区与原生横向轮播 |
+| :---: | :---: |
+| <img src="Documentation/Screenshots/multi-sections-top.jpg" alt="多分区上半页真实运行截图" width="320"> | <img src="Documentation/Screenshots/multi-sections-bottom.jpg" alt="混排和 UIKit 原生轮播分区真实运行截图" width="320"> |
+
+以上为 iPhone 17 Pro / iOS 26.5 的多分区页面运行截图。
+
+
+
 ## 混排规则
 
 1. 从有效交叉轴尺寸中扣除定义之间的间距，并优先预留所有 fixed 尺寸。
@@ -129,7 +206,7 @@ let layout = UIKitLazyVGridLayout(
 - 轨道尺寸来自布局环境的 `effectiveContentSize`，不会重复扣除 `safeAreaInsets`。
 - 集合视图的约束与 `contentInsetAdjustmentBehavior` 由宿主管理；布局不修改滚动视图的 inset 策略。
 - 对齐控制整组轨道在交叉轴剩余空间中的位置，不控制 cell 内部内容。
-- 轨道溢出时不会以负偏移进行居中或尾部对齐。当前没有交叉轴 section padding 配置。
+- 轨道溢出时不会以负偏移进行居中或尾部对齐。独立分区工厂可通过 `contentInsets` 参数设置交叉轴留白。
 
 ## 行为约定与兼容范围
 
@@ -138,7 +215,7 @@ let layout = UIKitLazyVGridLayout(
 - VGrid 使用固定 `rowHeight`，HGrid 使用固定 `columnWidth`；当前不提供内容自适应的主轴尺寸。
 - fixed 保持指定尺寸，flexible 保留 minimum，因此空间不足时可能溢出。adaptive 可以小于 minimum；分配计算对极窄空间使用 1 pt 保底值，再应用 maximum。
 - adaptive 达到 maximum 后的空白不会重新分配给其他定义。
-- 所有分区使用同一组轨道定义；初始化后修改原定义数组不会更新现有布局。
+- 直接创建 V/H layout 时，所有分区使用同一组轨道定义；分区工厂允许每个分区使用不同定义。修改原定义数组不会更新已经创建的分区。
 - 数组不得为空。固定尺寸、minimum、主轴尺寸必须是有限正数；maximum 不得小于 minimum；间距和页眉、页脚尺寸必须是有限非负数。布局初始化时违反约束会触发 `precondition`。
 
 ## 测试

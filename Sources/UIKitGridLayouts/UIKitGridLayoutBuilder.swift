@@ -41,83 +41,120 @@ enum UIKitGridLayoutBuilder {
         validate(definitions)
 
         return { _, environment in
-            // contentInsetsReference 与 collection view 的滚动 inset 策略由 UIKit
-            // 解析到环境中。使用已应用容器 inset 的尺寸，不重复减 safeAreaInsets。
-            // 本 provider 只添加主轴的 section 间距，没有额外的交叉轴 section padding。
-            let container = environment.container.effectiveContentSize
-            let available = max(1, axis == .vertical ? container.width : container.height)
-            let tracks = resolve(definitions, availableExtent: available)
-            let totalExtent = tracks.reduce(0) { $0 + $1.extent + $1.spacing }
-            let equalSpacing = tracks.dropLast().allSatisfy {
-                abs($0.spacing - (tracks.first?.spacing ?? 0)) < 0.001
-            }
-
-            let items = tracks.enumerated().map { index, track in
-                let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(
-                    widthDimension: axis == .vertical ? .absolute(track.extent) : .fractionalWidth(1),
-                    heightDimension: axis == .vertical ? .fractionalHeight(1) : .absolute(track.extent)
-                ))
-                if !equalSpacing && index < tracks.count - 1 {
-                    item.edgeSpacing = NSCollectionLayoutEdgeSpacing(
-                        leading: nil, top: nil,
-                        trailing: axis == .vertical ? .fixed(track.spacing) : nil,
-                        bottom: axis == .horizontal ? .fixed(track.spacing) : nil
-                    )
-                }
-                return item
-            }
-
-            let size = NSCollectionLayoutSize(
-                widthDimension: .absolute(axis == .vertical ? totalExtent : itemExtent),
-                heightDimension: .absolute(axis == .vertical ? itemExtent : totalExtent)
+            makeSection(
+                tracks: definitions, axis: axis, alignmentFraction: alignmentFraction,
+                spacing: lineSpacing, pinnedViews: pinnedViews,
+                itemExtent: itemExtent, headerExtent: headerExtent, footerExtent: footerExtent,
+                environment: environment
             )
-            // subitems 保留指定尺寸；带 count 的重复 group 会重新分配尺寸。
-            let group: NSCollectionLayoutGroup
-            if axis == .vertical {
-                group = .horizontal(layoutSize: size, subitems: items)
-            } else {
-                group = .vertical(layoutSize: size, subitems: items)
-            }
-            if equalSpacing {
-                group.interItemSpacing = .fixed(tracks.count > 1 ? tracks[0].spacing : 0)
-            }
-
-            let offset = max(0, available - totalExtent) * alignmentFraction
-            group.edgeSpacing = NSCollectionLayoutEdgeSpacing(
-                leading: axis == .vertical ? .fixed(offset) : nil,
-                top: axis == .horizontal ? .fixed(offset) : nil,
-                trailing: nil, bottom: nil
-            )
-
-            let section = NSCollectionLayoutSection(group: group)
-            section.interGroupSpacing = lineSpacing
-            section.contentInsets = NSDirectionalEdgeInsets(
-                top: axis == .vertical && headerExtent > 0 ? lineSpacing : 0,
-                leading: axis == .horizontal && headerExtent > 0 ? lineSpacing : 0,
-                bottom: axis == .vertical ? lineSpacing : 0,
-                trailing: axis == .horizontal ? lineSpacing : 0
-            )
-
-            var supplementaryItems: [NSCollectionLayoutBoundarySupplementaryItem] = []
-            if headerExtent > 0 {
-                supplementaryItems.append(boundary(
-                    extent: headerExtent, axis: axis,
-                    kind: UICollectionView.elementKindSectionHeader,
-                    alignment: axis == .vertical ? .top : .leading,
-                    pinned: pinnedViews.contains(.sectionHeaders)
-                ))
-            }
-            if footerExtent > 0 {
-                supplementaryItems.append(boundary(
-                    extent: footerExtent, axis: axis,
-                    kind: UICollectionView.elementKindSectionFooter,
-                    alignment: axis == .vertical ? .bottom : .trailing,
-                    pinned: pinnedViews.contains(.sectionFooters)
-                ))
-            }
-            section.boundarySupplementaryItems = supplementaryItems
-            return section
         }
+    }
+
+    /// 根据当前环境创建一个独立分区；交叉轴内边距在轨道分配前扣除。
+    static func makeSection(
+        tracks definitions: [UIKitGridItem],
+        axis: Axis,
+        alignmentFraction: CGFloat,
+        spacing: CGFloat?,
+        pinnedViews: UIKitPinnedScrollableViews,
+        itemExtent: CGFloat,
+        headerExtent: CGFloat,
+        footerExtent: CGFloat,
+        contentInsets: NSDirectionalEdgeInsets? = nil,
+        environment: any NSCollectionLayoutEnvironment
+    ) -> NSCollectionLayoutSection {
+        precondition(!definitions.isEmpty, "At least one row or column is required.")
+        precondition(itemExtent.isFinite && itemExtent > 0)
+        precondition(headerExtent.isFinite && headerExtent >= 0)
+        precondition(footerExtent.isFinite && footerExtent >= 0)
+        let lineSpacing = spacing ?? defaultSpacing
+        precondition(lineSpacing.isFinite && lineSpacing >= 0)
+        validate(definitions)
+
+        if let contentInsets {
+            precondition([contentInsets.top, contentInsets.leading, contentInsets.bottom, contentInsets.trailing]
+                .allSatisfy { $0.isFinite && $0 >= 0 })
+        }
+
+        // contentInsetsReference 与 collection view 的滚动 inset 策略由 UIKit
+        // 解析到环境中。使用已应用容器 inset 的尺寸，不重复减 safeAreaInsets。
+        // 分区内边距独立于容器安全区域；只扣除调用方指定的交叉轴留白。
+        let container = environment.container.effectiveContentSize
+        let insets = contentInsets ?? NSDirectionalEdgeInsets(
+            top: axis == .vertical && headerExtent > 0 ? lineSpacing : 0,
+            leading: axis == .horizontal && headerExtent > 0 ? lineSpacing : 0,
+            bottom: axis == .vertical ? lineSpacing : 0,
+            trailing: axis == .horizontal ? lineSpacing : 0
+        )
+        let crossInsets = axis == .vertical
+            ? insets.leading + insets.trailing : insets.top + insets.bottom
+        let available = max(1, (axis == .vertical ? container.width : container.height) - crossInsets)
+        let tracks = resolve(definitions, availableExtent: available)
+        let totalExtent = tracks.reduce(0) { $0 + $1.extent + $1.spacing }
+        let equalSpacing = tracks.dropLast().allSatisfy {
+            abs($0.spacing - (tracks.first?.spacing ?? 0)) < 0.001
+        }
+
+        let items = tracks.enumerated().map { index, track in
+            let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(
+                widthDimension: axis == .vertical ? .absolute(track.extent) : .fractionalWidth(1),
+                heightDimension: axis == .vertical ? .fractionalHeight(1) : .absolute(track.extent)
+            ))
+            if !equalSpacing && index < tracks.count - 1 {
+                item.edgeSpacing = NSCollectionLayoutEdgeSpacing(
+                    leading: nil, top: nil,
+                    trailing: axis == .vertical ? .fixed(track.spacing) : nil,
+                    bottom: axis == .horizontal ? .fixed(track.spacing) : nil
+                )
+            }
+            return item
+        }
+
+        let size = NSCollectionLayoutSize(
+            widthDimension: .absolute(axis == .vertical ? totalExtent : itemExtent),
+            heightDimension: .absolute(axis == .vertical ? itemExtent : totalExtent)
+        )
+        // subitems 保留指定尺寸；带 count 的重复 group 会重新分配尺寸。
+        let group: NSCollectionLayoutGroup
+        if axis == .vertical {
+            group = .horizontal(layoutSize: size, subitems: items)
+        } else {
+            group = .vertical(layoutSize: size, subitems: items)
+        }
+        if equalSpacing {
+            group.interItemSpacing = .fixed(tracks.count > 1 ? tracks[0].spacing : 0)
+        }
+
+        let offset = max(0, available - totalExtent) * alignmentFraction
+        group.edgeSpacing = NSCollectionLayoutEdgeSpacing(
+            leading: axis == .vertical ? .fixed(offset) : nil,
+            top: axis == .horizontal ? .fixed(offset) : nil,
+            trailing: nil, bottom: nil
+        )
+
+        let section = NSCollectionLayoutSection(group: group)
+        section.interGroupSpacing = lineSpacing
+        section.contentInsets = insets
+
+        var supplementaryItems: [NSCollectionLayoutBoundarySupplementaryItem] = []
+        if headerExtent > 0 {
+            supplementaryItems.append(boundary(
+                extent: headerExtent, axis: axis,
+                kind: UICollectionView.elementKindSectionHeader,
+                alignment: axis == .vertical ? .top : .leading,
+                pinned: pinnedViews.contains(.sectionHeaders)
+            ))
+        }
+        if footerExtent > 0 {
+            supplementaryItems.append(boundary(
+                extent: footerExtent, axis: axis,
+                kind: UICollectionView.elementKindSectionFooter,
+                alignment: axis == .vertical ? .bottom : .trailing,
+                pinned: pinnedViews.contains(.sectionFooters)
+            ))
+        }
+        section.boundarySupplementaryItems = supplementaryItems
+        return section
     }
 
     /// 创建覆盖整个交叉轴、并具有指定主轴尺寸的分区边界辅助布局项。

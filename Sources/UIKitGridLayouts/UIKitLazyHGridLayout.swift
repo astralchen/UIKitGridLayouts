@@ -56,6 +56,47 @@ public final class UIKitLazyHGridLayout: UICollectionViewCompositionalLayout {
         )
     }
 
+    /// 根据当前布局环境创建一个可独立配置的横向网格分区。
+    ///
+    /// 在 UICollectionViewCompositionalLayout 的 sectionProvider 中调用此方法，
+    /// 可按 sectionIndex 为不同分区指定不同行定义，或与 UIKit 原生分区组合。
+    /// 每次调用返回一个新的分区；环境变化时应重新创建，不要跨布局环境缓存结果。
+    /// 调用方负责配置外层布局的 scrollDirection（水平方向）和 contentInsetsReference。
+    /// 返回后可继续设置 decorationItems、辅助视图或其他分区属性。
+    ///
+    /// - Parameters:
+    ///   - rows: 非空的行定义数组；每个定义的 spacing 控制交叉轴间距。
+    ///   - alignment: 整组行在剩余高度内的对齐方式，默认值为 center。
+    ///   - spacing: 主轴组间距，单位为点。必须是有限非负数；nil 使用 ``defaultSpacing``。
+    ///   - pinnedViews: 页眉与页脚的吸附选项，默认值为空集合。
+    ///   - columnWidth: 单元格在主轴上的固定尺寸，单位为点。必须是有限正数，默认值为 56。
+    ///   - headerWidth: 页眉在主轴上的尺寸，单位为点。必须是有限非负数；0 不创建页眉。
+    ///   - footerWidth: 页脚在主轴上的尺寸，单位为点。必须是有限非负数；0 不创建页脚。
+    ///   - contentInsets: 分区内边距；每项必须是有限非负数。nil 沿用布局初始化器的
+    ///     主轴留白规则；非 nil 替换全部四边。top / bottom 在轨道计算前扣除一次。
+    ///   - environment: 外层 sectionProvider 本次收到的布局环境。
+    /// - Returns: 按当前有效容器尺寸计算的网格分区。
+    /// - Important: 创建后修改交叉轴 contentInsets 不会重新计算轨道；请通过参数传入。
+    ///   指定正数页眉或页脚尺寸时，数据源仍需提供对应的标准辅助视图。
+    public static func makeSection(
+        rows: [UIKitGridItem],
+        alignment: UIKitGridVerticalAlignment = .center,
+        spacing: CGFloat? = nil,
+        pinnedViews: UIKitPinnedScrollableViews = [],
+        columnWidth: CGFloat = 56,
+        headerWidth: CGFloat = 0,
+        footerWidth: CGFloat = 0,
+        contentInsets: NSDirectionalEdgeInsets? = nil,
+        environment: any NSCollectionLayoutEnvironment
+    ) -> NSCollectionLayoutSection {
+        UIKitGridLayoutBuilder.makeSection(
+            tracks: rows, axis: .horizontal, alignmentFraction: alignment.offsetFraction,
+            spacing: spacing, pinnedViews: pinnedViews,
+            itemExtent: columnWidth, headerExtent: headerWidth, footerExtent: footerWidth,
+            contentInsets: contentInsets, environment: environment
+        )
+    }
+
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("Use init(rows:)") }
 }
