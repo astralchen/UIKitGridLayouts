@@ -4,7 +4,7 @@
 
 提供纵向和横向两种 `UICollectionViewCompositionalLayout` 子类，支持 fixed、flexible、adaptive 及其混排。单元格、数据和辅助视图仍由 UICollectionView 数据源管理。包仅依赖 UIKit，不依赖 SwiftUI 或示例 App。
 
-## SwiftUI 风格的参数命名（未发布）
+## SwiftUI 风格的参数命名（0.4.0）
 
 初始化器与 `makeSection` 使用相同命名，对齐类型明确区分交叉轴：
 
@@ -29,7 +29,7 @@ let horizontal = UIKitLazyHGridLayout(
 
 `columns` 定义列宽，`rows` 定义行高，数组均不能为空。`alignment` 控制整组轨道在交叉轴剩余空间中的位置，默认 `.center`；水平选项为 `.leading / .center / .trailing`，垂直选项为 `.top / .center / .bottom`。库最低 iOS 15，示例最低 iOS 16。命名对齐 SwiftUI，不代表所有布局测量行为相同。
 
-**从 0.3.0 迁移：** 将显式类型声明、extension 和类型别名中的 `UIKitGridAlignment` 改为 `UIKitGridHorizontalAlignment`。旧类型名已移除，不提供兼容 typealias。`alignment: .center` 等可推断类型的调用无需修改；`rows:`、`columns:`、`spacing:`、`pinnedViews:` 以及主轴尺寸参数保持不变。该改动同时适用于初始化器和分区工厂，布局算法与默认值保持不变。
+**从 0.3.x 迁移到 0.4.0：** 将显式类型声明、extension 和类型别名中的 `UIKitGridAlignment` 改为 `UIKitGridHorizontalAlignment`。旧类型名已移除，不提供兼容 typealias。`alignment: .center` 等可推断类型的调用无需修改；`rows:`、`columns:`、`spacing:`、`pinnedViews:` 以及主轴尺寸参数保持不变。该改动同时适用于初始化器和分区工厂，布局算法与默认值保持不变。
 
 示例首页切换 VGrid / HGrid，再点击“参数 / 代码”，即可查看当前配置与完整对齐类型。以下是 2026-10-28 在 **iPhone 17 Pro / iOS 26.5 模拟器**实际运行更新后 App 的截图：fixed、3 条 72 pt 轨道、居中、主轴及轨道间距 12 pt、页眉开启；Debug 参数 `--grid-api` 直接打开代码页，横向另加 `--grid-axis horizontal`。
 
@@ -65,7 +65,7 @@ Swift tools 版本与 iOS 部署版本是独立要求。使用新编译器不要
 
 ## 安装
 
-**本文包含未发布的对齐类型重命名。** 新类型 `UIKitGridHorizontalAlignment` 需要使用包含本次改动的本地包；已发布的 0.3.0 仍使用 `UIKitGridAlignment`。以下版本安装方式获取的是 0.3.0；从 0.2.x 升级主轴尺寸 API 时，另见下文迁移说明。
+**本文代码示例对应 0.4.0。** 本版本包含不兼容的对齐类型重命名：`UIKitGridAlignment` 改为 `UIKitGridHorizontalAlignment`，迁移方式见上文。从 0.2.x 升级时，还需按下文迁移主轴尺寸参数。
 
 在 Xcode 选择 **File → Add Package Dependencies**，输入仓库地址：
 
@@ -73,14 +73,14 @@ Swift tools 版本与 iOS 部署版本是独立要求。使用新编译器不要
 https://github.com/astralchen/UIKitGridLayouts.git
 ```
 
-当前已发布版本为 [0.3.0](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.3.0)。在 Xcode 中选择 **Exact Version**，填写 `0.3.0`，然后将 `UIKitGridLayouts` 产品加入 App target。
+当前已发布版本为 [0.4.0](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.4.0)。在 Xcode 中选择 **Exact Version**，填写 `0.4.0`，然后将 `UIKitGridLayouts` 产品加入 App target。
 
-在另一个 Swift Package 中使用以下版本范围，允许更新到 `0.3.x`，不自动跨到 `0.4.0`：
+在另一个 Swift Package 中使用以下版本范围，允许更新到 `0.4.x`，不自动跨到 `0.5.0`：
 
 ```swift
 .package(
     url: "https://github.com/astralchen/UIKitGridLayouts.git",
-    .upToNextMinor(from: "0.3.0")
+    .upToNextMinor(from: "0.4.0")
 )
 ```
 

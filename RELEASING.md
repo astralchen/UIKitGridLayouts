@@ -7,13 +7,15 @@
 1. 确认 `Package.swift` 仍声明 Swift tools 6.3、Swift 6 language mode 和最低 iOS 15。
 2. 在包含 Swift 6.3 或更新编译器的 Xcode 中运行 `bash Scripts/test.sh 'platform=iOS Simulator,id=实际UDID'`。记录 Xcode、编译器、运行系统和测试结果。
 3. 在示例 App 对比纵向与横向、上限、窄容器、混排顺序与对齐。算法或界面变化后，更新 README 的真实运行截图。
-4. 检查 README 的安装说明、公开 API 中文注释、兼容范围以及 CHANGELOG。保留 `Documentation/Screenshots/` 中 README 引用的全部图片（0.3.0 共 13 张）。
+4. 检查 README 的安装说明、公开 API 中文注释、兼容范围以及 CHANGELOG。保留 `Documentation/Screenshots/` 中 README 引用的全部图片（0.4.0 共 19 张）。
 5. 检查工作区和将发布的提交，排除构建缓存、个人 Xcode 设置、签名资料和 `.xcresult`。
 6. 确定版本号，将 CHANGELOG 的“未发布”条目归入该版本；完成验证后，再为对应提交创建版本标签和 GitHub Release。
 
-## 未发布：SwiftUI 风格的对齐类型命名
+## 0.4.0：SwiftUI 风格的对齐类型命名
 
 2026-10-28，`UIKitGridAlignment` 直接重命名为 `UIKitGridHorizontalAlignment`；VGrid 初始化器和 `makeSection` 同步使用新类型。HGrid 保留 `UIKitGridVerticalAlignment`；`columns:` / `rows:` / `alignment:` 标签保持 SwiftUI 风格。
+
+版本标签为 `0.4.0`；[GitHub Release](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.4.0) 包含破坏性变更、迁移和安装说明。本次版本整理仅更新文档，Package.swift、Sources、Tests 和截图与已验证的 `1aefebf` 提交一致，沿用下述测试和运行结果。示例内部命名清理后的 8 项集成测试也已全部通过。
 
 - Xcode 27.1（27A9275），iPhone 17 Pro / iOS 26.5：示例构建与启动成功；Xcode 包工作区执行 34 项库测试，全部通过；示例执行 8 项集成测试，全部通过。
 - 测试覆盖两个方向的分区工厂、轨道尺寸、安全区域、主轴尺寸及内容更新；本次未新增测试或修改分配算法。
@@ -21,9 +23,9 @@
 - 实际启动更新后的两个方向参数代码页，逐张检查完整类型名及 columns/rows 调用；新截图为 `api-naming-vertical.png` 和 `api-naming-horizontal.png`，分别保存在两个仓库的 Documentation/Screenshots 并由各自 README 引用。
 - Debug 启动参数 `--grid-api` 可重复打开代码页，另加 `--grid-axis horizontal` 选择横向。截图使用 fixed、3 条 72 pt 轨道、center、间距 12 pt 和页眉。
 - 沙箱内运行 Scripts/test.sh 时无法连接 CoreSimulator，且 xcodebuild 未识别包目录；上述测试结果来自 Xcode MCP 对实际 submodule 包工作区与示例工程的测试运行。
-- 未执行完整 UI 自动化套件、真机或 iOS 15 运行时验收。新类型尚未发布；提交时应先提交库改动，再更新示例 submodule 指针。
+- 未执行完整 UI 自动化套件、真机或 iOS 15 运行时验收。示例 submodule 固定到 `0.4.0` 标签对应提交。
 
-## 未发布：横向多分区示例
+### 0.4.0 附带的横向多分区示例验证
 
 2026-10-28，使用现有 0.3.0 API 扩展多分区示例，库源码与 API 不变。
 

@@ -1,12 +1,13 @@
 # 更新记录
 
-## 未发布
+## 0.4.0 — 2026-10-28
 
 - 不兼容 API 调整：`UIKitGridAlignment` 重命名为 `UIKitGridHorizontalAlignment`，不保留旧名别名；VGrid 的初始化器和 `makeSection` 同步更新。HGrid 保持 `rows:` 与 `UIKitGridVerticalAlignment`，VGrid 保持 `columns:`，两个方向均使用 `alignment:`，参照 SwiftUI 的命名。
 - 同步示例的显式类型、代码页、参数说明、两个方向的真实运行截图和迁移文档；默认值、布局算法与最低系统版本不变。
 
-- 示例和文档：多分区页面新增纵向／横向切换，展示独立 header/footer 尺寸、吸附及背景，以及原生正交轮播；库 API 和源码不变。
+- 示例和文档：多分区页面新增纵向／横向切换，展示独立 header/footer 尺寸、吸附及背景，以及原生正交轮播；这一示例扩展未额外修改库 API 或布局算法。
 - 新增横向多分区真实运行截图与 README 参数说明。
+- 示例共享配置改用 tracks、spacing 与主轴 extent 命名；同步 README 调用示例。最低 iOS 15、Swift tools 6.3、Swift 6 language mode 保持不变。
 
 ## 0.3.0 — 2026-10-28
 
