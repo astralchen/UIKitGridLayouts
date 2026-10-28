@@ -11,6 +11,18 @@
 5. 检查工作区和将发布的提交，排除构建缓存、个人 Xcode 设置、签名资料和 `.xcresult`。
 6. 确定版本号，将 CHANGELOG 的“未发布”条目归入该版本；完成验证后，再为对应提交创建版本标签和 GitHub Release。
 
+## 未发布：SwiftUI 风格的对齐类型命名
+
+2026-10-28，`UIKitGridAlignment` 直接重命名为 `UIKitGridHorizontalAlignment`；VGrid 初始化器和 `makeSection` 同步使用新类型。HGrid 保留 `UIKitGridVerticalAlignment`；`columns:` / `rows:` / `alignment:` 标签保持 SwiftUI 风格。
+
+- Xcode 27.1（27A9275），iPhone 17 Pro / iOS 26.5：示例构建与启动成功；Xcode 包工作区执行 34 项库测试，全部通过；示例执行 8 项集成测试，全部通过。
+- 测试覆盖两个方向的分区工厂、轨道尺寸、安全区域、主轴尺寸及内容更新；本次未新增测试或修改分配算法。
+- Xcode 27.1 工具链以 Swift 6 模式、`arm64-apple-ios15.0-simulator` 部署目标对全部库源码执行 typecheck，通过；此项是编译兼容性检查，不是 iOS 15 运行验收。
+- 实际启动更新后的两个方向参数代码页，逐张检查完整类型名及 columns/rows 调用；新截图为 `api-naming-vertical.png` 和 `api-naming-horizontal.png`，分别保存在两个仓库的 Documentation/Screenshots 并由各自 README 引用。
+- Debug 启动参数 `--grid-api` 可重复打开代码页，另加 `--grid-axis horizontal` 选择横向。截图使用 fixed、3 条 72 pt 轨道、center、间距 12 pt 和页眉。
+- 沙箱内运行 Scripts/test.sh 时无法连接 CoreSimulator，且 xcodebuild 未识别包目录；上述测试结果来自 Xcode MCP 对实际 submodule 包工作区与示例工程的测试运行。
+- 未执行完整 UI 自动化套件、真机或 iOS 15 运行时验收。新类型尚未发布；提交时应先提交库改动，再更新示例 submodule 指针。
+
 ## 未发布：横向多分区示例
 
 2026-10-28，使用现有 0.3.0 API 扩展多分区示例，库源码与 API 不变。

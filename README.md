@@ -4,6 +4,39 @@
 
 提供纵向和横向两种 `UICollectionViewCompositionalLayout` 子类，支持 fixed、flexible、adaptive 及其混排。单元格、数据和辅助视图仍由 UICollectionView 数据源管理。包仅依赖 UIKit，不依赖 SwiftUI 或示例 App。
 
+## SwiftUI 风格的参数命名（未发布）
+
+初始化器与 `makeSection` 使用相同命名，对齐类型明确区分交叉轴：
+
+| SwiftUI | UIKitGridLayouts |
+| --- | --- |
+| `LazyVGrid(columns:alignment:)` · `HorizontalAlignment` | `UIKitLazyVGridLayout(columns:alignment:)` · `UIKitGridHorizontalAlignment` |
+| `LazyHGrid(rows:alignment:)` · `VerticalAlignment` | `UIKitLazyHGridLayout(rows:alignment:)` · `UIKitGridVerticalAlignment` |
+
+```swift
+let horizontalAlignment: UIKitGridHorizontalAlignment = .leading
+let vertical = UIKitLazyVGridLayout(
+    columns: [UIKitGridItem(.fixed(72))],
+    alignment: horizontalAlignment
+)
+
+let verticalAlignment: UIKitGridVerticalAlignment = .top
+let horizontal = UIKitLazyHGridLayout(
+    rows: [UIKitGridItem(.fixed(72))],
+    alignment: verticalAlignment
+)
+```
+
+`columns` 定义列宽，`rows` 定义行高，数组均不能为空。`alignment` 控制整组轨道在交叉轴剩余空间中的位置，默认 `.center`；水平选项为 `.leading / .center / .trailing`，垂直选项为 `.top / .center / .bottom`。库最低 iOS 15，示例最低 iOS 16。命名对齐 SwiftUI，不代表所有布局测量行为相同。
+
+**从 0.3.0 迁移：** 将显式类型声明、extension 和类型别名中的 `UIKitGridAlignment` 改为 `UIKitGridHorizontalAlignment`。旧类型名已移除，不提供兼容 typealias。`alignment: .center` 等可推断类型的调用无需修改；`rows:`、`columns:`、`spacing:`、`pinnedViews:` 以及主轴尺寸参数保持不变。该改动同时适用于初始化器和分区工厂，布局算法与默认值保持不变。
+
+示例首页切换 VGrid / HGrid，再点击“参数 / 代码”，即可查看当前配置与完整对齐类型。以下是 2026-10-28 在 **iPhone 17 Pro / iOS 26.5 模拟器**实际运行更新后 App 的截图：fixed、3 条 72 pt 轨道、居中、主轴及轨道间距 12 pt、页眉开启；Debug 参数 `--grid-api` 直接打开代码页，横向另加 `--grid-axis horizontal`。
+
+| VGrid：columns 与水平对齐类型 | HGrid：rows 与垂直对齐类型 |
+| :---: | :---: |
+| <img src="Documentation/Screenshots/api-naming-vertical.png" alt="VGrid 的 columns 和 UIKitGridHorizontalAlignment 运行代码页" width="320"> | <img src="Documentation/Screenshots/api-naming-horizontal.png" alt="HGrid 的 rows 和 UIKitGridVerticalAlignment 运行代码页" width="320"> |
+
 ## 运行效果
 
 可运行工程见 [GridItemSizeLayoutDemo](https://github.com/astralchen/GridItemSizeLayoutDemo)。克隆时使用 `--recurse-submodules`，示例通过 submodule 固定布局库版本。
@@ -32,7 +65,7 @@ Swift tools 版本与 iOS 部署版本是独立要求。使用新编译器不要
 
 ## 安装
 
-**本文代码示例对应 0.3.0。** 此版本调整了主轴尺寸 API；从 0.2.x 升级时，请按下文迁移参数名和尺寸值。
+**本文包含未发布的对齐类型重命名。** 新类型 `UIKitGridHorizontalAlignment` 需要使用包含本次改动的本地包；已发布的 0.3.0 仍使用 `UIKitGridAlignment`。以下版本安装方式获取的是 0.3.0；从 0.2.x 升级主轴尺寸 API 时，另见下文迁移说明。
 
 在 Xcode 选择 **File → Add Package Dependencies**，输入仓库地址：
 
@@ -200,8 +233,8 @@ let layout = UICollectionViewCompositionalLayout { sectionIndex, environment in
         spacing: 12,
         pinnedViews: style.pinnedViews,
         itemSize: .fixed(56),
-        headerSize: .fixed(style.headerHeight),
-        footerSize: .fixed(style.footerHeight),
+        headerSize: .fixed(style.headerExtent),
+        footerSize: .fixed(style.footerExtent),
         contentInsets: .init(top: 8, leading: 16, bottom: 12, trailing: 16),
         environment: environment
     )

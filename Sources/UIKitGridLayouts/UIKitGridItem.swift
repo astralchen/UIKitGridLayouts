@@ -64,11 +64,11 @@ public struct UIKitGridItem: Sendable {
     }
 }
 
-/// 指定纵向网格中整组列的水平对齐方式。
+/// 指定纵向网格中整组列的水平对齐方式，对应 SwiftUI HorizontalAlignment。
 ///
 /// 对齐作用于轨道总宽度小于可用宽度时的剩余空间，不改变单元格内部内容的对齐。
 /// 轨道超出容器时不通过负偏移进行居中或尾部对齐。
-public enum UIKitGridAlignment: String, Sendable, CaseIterable, Identifiable {
+public enum UIKitGridHorizontalAlignment: String, Sendable, CaseIterable, Identifiable {
     /// 与容器的起始边缘对齐。
     case leading
     /// 在容器的可用宽度内居中。
@@ -87,7 +87,7 @@ public enum UIKitGridAlignment: String, Sendable, CaseIterable, Identifiable {
     }
 }
 
-/// 指定横向网格中整组行的垂直对齐方式。
+/// 指定横向网格中整组行的垂直对齐方式，对应 SwiftUI VerticalAlignment。
 ///
 /// 对齐作用于轨道总高度小于可用高度时的剩余空间，不改变单元格内部内容的对齐。
 /// 轨道超出容器时不通过负偏移进行居中或底部对齐。

@@ -7,7 +7,8 @@ import UIKit
 ///
 /// 此类型借鉴 SwiftUI LazyVGrid 的参数组织方式。单元格与辅助视图由
 /// UICollectionViewDataSource 提供；itemSize 支持固定高度、内容自适应高度与宽高比。
-/// 创建与使用布局时应遵循 UIKit 的主线程隔离要求。
+/// alignment 使用 ``UIKitGridHorizontalAlignment``，对应 SwiftUI LazyVGrid 的交叉轴对齐类型。
+/// 最低支持 iOS 15；创建与使用布局时应遵循 UIKit 的主线程隔离要求。
 public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
     /// 未指定轨道间距或行间距时使用的默认值，单位为点。
     public static let defaultSpacing: CGFloat = 8
@@ -32,7 +33,7 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
     /// - Important: 空列数组或无效尺寸、间距会触发前置条件失败。
     public init(
         columns: [UIKitGridItem],
-        alignment: UIKitGridAlignment = .center,
+        alignment: UIKitGridHorizontalAlignment = .center,
         spacing: CGFloat? = nil,
         pinnedViews: UIKitPinnedScrollableViews = [],
         itemSize: UIKitGridSize = .fixed(56),
@@ -77,7 +78,7 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
     ///   指定非 nil 页眉或页脚尺寸时，数据源仍需提供对应的标准辅助视图。
     public static func makeSection(
         columns: [UIKitGridItem],
-        alignment: UIKitGridAlignment = .center,
+        alignment: UIKitGridHorizontalAlignment = .center,
         spacing: CGFloat? = nil,
         pinnedViews: UIKitPinnedScrollableViews = [],
         itemSize: UIKitGridSize = .fixed(56),

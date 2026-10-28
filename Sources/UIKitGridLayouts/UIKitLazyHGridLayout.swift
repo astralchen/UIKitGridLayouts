@@ -7,7 +7,8 @@ import UIKit
 ///
 /// 此类型借鉴 SwiftUI LazyHGrid 的参数组织方式。单元格与辅助视图由
 /// UICollectionViewDataSource 提供；itemSize 支持固定宽度、内容自适应宽度与宽高比。
-/// 创建与使用布局时应遵循 UIKit 的主线程隔离要求。
+/// alignment 使用 ``UIKitGridVerticalAlignment``，对应 SwiftUI LazyHGrid 的交叉轴对齐类型。
+/// 最低支持 iOS 15；创建与使用布局时应遵循 UIKit 的主线程隔离要求。
 public final class UIKitLazyHGridLayout: UICollectionViewCompositionalLayout {
     /// 未指定轨道间距或列间距时使用的默认值，单位为点。
     public static let defaultSpacing: CGFloat = 8
