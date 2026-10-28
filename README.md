@@ -167,12 +167,86 @@ let section = UIKitLazyHGridLayout.makeSection(
 
 示例 App 的“多分区”入口展示 fixed、flexible、adaptive、混排和原生横向轮播五个独立分区。
 
-| 独立 fixed / flexible / adaptive 分区 | 混排分区与原生横向轮播 |
+| 独立页眉页脚与分区背景 | 吸附配置与原生横向轮播 |
 | :---: | :---: |
-| <img src="Documentation/Screenshots/multi-sections-top.jpg" alt="多分区上半页真实运行截图" width="320"> | <img src="Documentation/Screenshots/multi-sections-bottom.jpg" alt="混排和 UIKit 原生轮播分区真实运行截图" width="320"> |
+| <img src="Documentation/Screenshots/multi-sections-top.jpg" alt="各分区独立页眉页脚与背景的真实运行截图" width="320"> | <img src="Documentation/Screenshots/multi-sections-bottom.jpg" alt="混排分区吸附页眉页脚及原生轮播背景的真实运行截图" width="320"> |
 
 以上为 iPhone 17 Pro / iOS 26.5 的多分区页面运行截图。
 
+
+
+### 每个分区独立配置辅助视图与背景
+
+“多分区”页同时演示以下配置；页眉和页脚文本直接标明吸附状态，背景使用不同颜色区分分区。分区包含足够多的单元格，可上下滚动观察辅助视图在所属分区范围内的吸附和离开。
+
+| 分区 | Header 高度 | Footer 高度 | 吸附选项 | 背景 |
+| --- | ---: | ---: | --- | --- |
+| fixed | 36 pt | 28 pt | 不吸附 | 蓝色 |
+| flexible | 44 pt | 32 pt | `.sectionHeaders` | 青色 |
+| adaptive | 36 pt | 36 pt | `.sectionFooters` | 橙色 |
+| 混排 | 44 pt | 32 pt | `[.sectionHeaders, .sectionFooters]` | 紫色 |
+| UIKit 原生轮播 | 36 pt | 28 pt | 不吸附 | 粉色 |
+
+网格分区通过 `makeSection` 的参数分别指定 header、footer 和吸附。背景则使用 UIKit 的 decoration：
+
+```swift
+let layout = UICollectionViewCompositionalLayout { sectionIndex, environment in
+    // 示例参数按分区独立存放；可替换为你的数据模型。
+    let style = SectionDemoStyle.all[sectionIndex]
+    let section = UIKitLazyVGridLayout.makeSection(
+        columns: [UIKitGridItem(.adaptive(minimum: 85), spacing: 8)],
+        spacing: 12,
+        pinnedViews: style.pinnedViews,
+        rowHeight: 56,
+        headerHeight: style.headerHeight,
+        footerHeight: style.footerHeight,
+        contentInsets: .init(top: 8, leading: 16, bottom: 12, trailing: 16),
+        environment: environment
+    )
+    let background = NSCollectionLayoutDecorationItem.background(
+        elementKind: SectionBackgroundView.elementKind
+    )
+    background.contentInsets = .init(top: 0, leading: 8, bottom: 0, trailing: 8)
+    background.zIndex = -1
+    section.decorationItems = [background]
+    return section
+}
+layout.register(
+    SectionBackgroundView.self,
+    forDecorationViewOfKind: SectionBackgroundView.elementKind
+)
+```
+
+`SectionDemoStyle`、`SectionBackgroundView` 和下面的 `SectionBoundaryView` 都是示例 App 中定义的类型，不属于 UIKitGridLayouts 的公开 API。背景视图在 `apply(_:)` 中读取 `layoutAttributes.indexPath.section`，使用该分区的颜色；复用时每次重新设置颜色。
+
+Header/footer 属于 supplementary view，由集合视图注册并由数据源提供。只设置尺寸或 `pinnedViews` 不会自动创建视图：
+
+```swift
+for kind in [UICollectionView.elementKindSectionHeader,
+             UICollectionView.elementKindSectionFooter] {
+    collectionView.register(
+        SectionBoundaryView.self,
+        forSupplementaryViewOfKind: kind,
+        withReuseIdentifier: "boundary"
+    )
+}
+
+// 在数据源的 viewForSupplementaryElementOfKind 回调中：
+let view = collectionView.dequeueReusableSupplementaryView(
+    ofKind: kind, withReuseIdentifier: "boundary", for: indexPath
+) as! SectionBoundaryView
+view.configure(
+    section: indexPath.section,
+    isHeader: kind == UICollectionView.elementKindSectionHeader
+)
+return view
+```
+
+- Header/footer 分别通过 `kind` 配置内容；示例每次复用都会覆盖文本、颜色和无障碍标识。
+- Decoration 由 layout 管理，不进入数据源的 supplementary 回调，也不增加数据源的 item 数量。
+- `pinToVisibleBounds` 相对集合视图的可见边界生效，并受所属分区范围约束；页脚吸底不是固定在整个屏幕底部的工具栏。
+- 原生轮播 section 直接创建自己的 boundary supplementary items；它与网格 section 共用注册和数据源机制。
+- 将某个 header/footer 尺寸设为 0 可省略对应布局项；不要对未注册的 kind 创建布局项。
 
 
 ## 混排规则
