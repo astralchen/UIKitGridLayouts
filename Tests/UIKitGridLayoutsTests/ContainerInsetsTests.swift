@@ -51,9 +51,9 @@ final class ContainerInsetsTests: XCTestCase {
             alignmentFraction: 0.5,
             spacing: 12,
             pinnedViews: [],
-            itemExtent: 56,
-            headerExtent: 0,
-            footerExtent: 0
+            itemSize: .fixed(56),
+            headerSize: nil,
+            footerSize: nil
         )
     }
 }

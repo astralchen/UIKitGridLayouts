@@ -10,12 +10,12 @@ final class SectionFactoryTests: XCTestCase {
             if index == 0 {
                 return UIKitLazyVGridLayout.makeSection(
                     columns: [UIKitGridItem(.fixed(70))], alignment: .leading,
-                    spacing: 5, rowHeight: 30, environment: environment
+                    spacing: 5, itemSize: .fixed(30), environment: environment
                 )
             }
             return UIKitLazyVGridLayout.makeSection(
                 columns: [UIKitGridItem(.adaptive(minimum: 80), spacing: 12)],
-                spacing: 17, rowHeight: 60,
+                spacing: 17, itemSize: .fixed(60),
                 contentInsets: NSDirectionalEdgeInsets(top: 0, leading: 20, bottom: 0, trailing: 20),
                 environment: environment
             )
@@ -33,12 +33,12 @@ final class SectionFactoryTests: XCTestCase {
             if index == 0 {
                 return UIKitLazyHGridLayout.makeSection(
                     rows: [UIKitGridItem(.fixed(45))], alignment: .top,
-                    spacing: 3, columnWidth: 40, environment: environment
+                    spacing: 3, itemSize: .fixed(40), environment: environment
                 )
             }
             return UIKitLazyHGridLayout.makeSection(
                 rows: [UIKitGridItem(.adaptive(minimum: 80), spacing: 12)],
-                spacing: 19, columnWidth: 90,
+                spacing: 19, itemSize: .fixed(90),
                 contentInsets: NSDirectionalEdgeInsets(top: 20, leading: 0, bottom: 20, trailing: 0),
                 environment: environment
             )
@@ -55,7 +55,7 @@ final class SectionFactoryTests: XCTestCase {
         let frames = try itemFrames(horizontal: false) { index, environment in
             if index == 0 {
                 return UIKitLazyVGridLayout.makeSection(
-                    columns: [UIKitGridItem(.flexible())], rowHeight: 44, environment: environment
+                    columns: [UIKitGridItem(.flexible())], itemSize: .fixed(44), environment: environment
                 )
             }
             let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(
@@ -75,7 +75,7 @@ final class SectionFactoryTests: XCTestCase {
     func testSectionCustomizationAndSupplementariesAreIndependent() throws {
         let first = UIKitLazyVGridLayout.makeSection(
             columns: [UIKitGridItem(.flexible())], spacing: 12,
-            pinnedViews: [.sectionHeaders, .sectionFooters], headerHeight: 32, footerHeight: 20,
+            pinnedViews: [.sectionHeaders, .sectionFooters], headerSize: .fixed(32), footerSize: .fixed(20),
             environment: SectionEnvironment()
         )
         let second = UIKitLazyVGridLayout.makeSection(

@@ -1,5 +1,14 @@
 # 更新记录
 
+## 未发布
+
+- 不兼容 API 调整：V/H 布局和分区工厂统一使用 `itemSize`、`headerSize`、`footerSize`；移除旧的 Height/Width 参数名。
+- 新增 `UIKitGridSize.fixed`、`.estimated`、`.aspectRatio` 和 iOS 17+ 的 `.uniform(estimated:)`。比例固定为宽 ÷ 高；cell 按各自轨道计算，group 使用最大主轴尺寸。
+- cell 与 group 同时启用 estimated，页眉页脚也支持 self-sizing；辅助视图默认为 nil，替代旧的 0。
+- UIKitGridSize 使用封装内部枚举的值类型和静态工厂，仅 uniform 标记 iOS 17+；其他模式继续支持 iOS 15。uniform 的纵向同一行等高、横向同一列等宽，不跨组统一。
+- 新增 15 项运行时集成测试，覆盖两个方向和两个公开入口的尺寸策略、内容更新、比例、容器重算与辅助视图，以及 uniform 末组不满、独立分组与 adaptive 成员变化。
+- 更新迁移说明与示例；最低 iOS 15 保持不变。
+
 ## 0.2.0 — 2026-10-28
 
 - 新增纵向和横向 `makeSection` 公共方法，返回 `NSCollectionLayoutSection`，支持每个分区使用不同规则并与原生分区组合。

@@ -18,9 +18,9 @@ enum UIKitGridLayoutBuilder {
     ///   - alignmentFraction: 交叉轴剩余空间中放在起始边缘的比例；调用方传入 0、0.5 或 1。
     ///   - spacing: 主轴方向的组间距；nil 使用 defaultSpacing。
     ///   - pinnedViews: 页眉与页脚的吸附选项。
-    ///   - itemExtent: 单元格在主轴上的固定尺寸。
-    ///   - headerExtent: 页眉在主轴上的尺寸；0 表示不创建页眉布局项。
-    ///   - footerExtent: 页脚在主轴上的尺寸；0 表示不创建页脚布局项。
+    ///   - itemSize: 单元格在主轴上的尺寸策略。
+    ///   - headerSize: 页眉在主轴上的尺寸策略；nil 表示不创建页眉布局项。
+    ///   - footerSize: 页脚在主轴上的尺寸策略；nil 表示不创建页脚布局项。
     /// - Returns: 为每个分区应用相同轨道定义的布局提供器。
     static func provider(
         tracks definitions: [UIKitGridItem],
@@ -28,14 +28,14 @@ enum UIKitGridLayoutBuilder {
         alignmentFraction: CGFloat,
         spacing: CGFloat?,
         pinnedViews: UIKitPinnedScrollableViews,
-        itemExtent: CGFloat,
-        headerExtent: CGFloat,
-        footerExtent: CGFloat
+        itemSize: UIKitGridSize,
+        headerSize: UIKitGridSize?,
+        footerSize: UIKitGridSize?
     ) -> UICollectionViewCompositionalLayoutSectionProvider {
         precondition(!definitions.isEmpty, "At least one row or column is required.")
-        precondition(itemExtent.isFinite && itemExtent > 0)
-        precondition(headerExtent.isFinite && headerExtent >= 0)
-        precondition(footerExtent.isFinite && footerExtent >= 0)
+        itemSize.validate()
+        headerSize?.validate()
+        footerSize?.validate()
         let lineSpacing = spacing ?? defaultSpacing
         precondition(lineSpacing.isFinite && lineSpacing >= 0)
         validate(definitions)
@@ -44,7 +44,7 @@ enum UIKitGridLayoutBuilder {
             makeSection(
                 tracks: definitions, axis: axis, alignmentFraction: alignmentFraction,
                 spacing: lineSpacing, pinnedViews: pinnedViews,
-                itemExtent: itemExtent, headerExtent: headerExtent, footerExtent: footerExtent,
+                itemSize: itemSize, headerSize: headerSize, footerSize: footerSize,
                 environment: environment
             )
         }
@@ -57,16 +57,16 @@ enum UIKitGridLayoutBuilder {
         alignmentFraction: CGFloat,
         spacing: CGFloat?,
         pinnedViews: UIKitPinnedScrollableViews,
-        itemExtent: CGFloat,
-        headerExtent: CGFloat,
-        footerExtent: CGFloat,
+        itemSize: UIKitGridSize,
+        headerSize: UIKitGridSize?,
+        footerSize: UIKitGridSize?,
         contentInsets: NSDirectionalEdgeInsets? = nil,
         environment: any NSCollectionLayoutEnvironment
     ) -> NSCollectionLayoutSection {
         precondition(!definitions.isEmpty, "At least one row or column is required.")
-        precondition(itemExtent.isFinite && itemExtent > 0)
-        precondition(headerExtent.isFinite && headerExtent >= 0)
-        precondition(footerExtent.isFinite && footerExtent >= 0)
+        itemSize.validate()
+        headerSize?.validate()
+        footerSize?.validate()
         let lineSpacing = spacing ?? defaultSpacing
         precondition(lineSpacing.isFinite && lineSpacing >= 0)
         validate(definitions)
@@ -81,8 +81,8 @@ enum UIKitGridLayoutBuilder {
         // 分区内边距独立于容器安全区域；只扣除调用方指定的交叉轴留白。
         let container = environment.container.effectiveContentSize
         let insets = contentInsets ?? NSDirectionalEdgeInsets(
-            top: axis == .vertical && headerExtent > 0 ? lineSpacing : 0,
-            leading: axis == .horizontal && headerExtent > 0 ? lineSpacing : 0,
+            top: axis == .vertical && headerSize != nil ? lineSpacing : 0,
+            leading: axis == .horizontal && headerSize != nil ? lineSpacing : 0,
             bottom: axis == .vertical ? lineSpacing : 0,
             trailing: axis == .horizontal ? lineSpacing : 0
         )
@@ -95,10 +95,24 @@ enum UIKitGridLayoutBuilder {
             abs($0.spacing - (tracks.first?.spacing ?? 0)) < 0.001
         }
 
+        let isVertical = axis == .vertical
+        let mainExtent = tracks.map {
+            itemSize.resolvedExtent(crossExtent: $0.extent, isVertical: isVertical)
+        }.max()!
+        let groupMainDimension: NSCollectionLayoutDimension
+        if itemSize.isSelfSizing {
+            groupMainDimension = .estimated(mainExtent)
+        } else {
+            groupMainDimension = .absolute(mainExtent)
+        }
         let items = tracks.enumerated().map { index, track in
+            // self-sizing 的 group 始终使用 estimated；uniform 只放在 cell 上，避免统一整个 section。
+            // fractional 主轴会阻止内容测量。
+            // 比例按每条轨道单独计算，混排时 group 使用最大的主轴尺寸避免重叠。
+            let mainDimension = itemSize.dimension(crossExtent: track.extent, isVertical: isVertical)
             let item = NSCollectionLayoutItem(layoutSize: NSCollectionLayoutSize(
-                widthDimension: axis == .vertical ? .absolute(track.extent) : .fractionalWidth(1),
-                heightDimension: axis == .vertical ? .fractionalHeight(1) : .absolute(track.extent)
+                widthDimension: isVertical ? .absolute(track.extent) : mainDimension,
+                heightDimension: isVertical ? mainDimension : .absolute(track.extent)
             ))
             if !equalSpacing && index < tracks.count - 1 {
                 item.edgeSpacing = NSCollectionLayoutEdgeSpacing(
@@ -111,8 +125,8 @@ enum UIKitGridLayoutBuilder {
         }
 
         let size = NSCollectionLayoutSize(
-            widthDimension: .absolute(axis == .vertical ? totalExtent : itemExtent),
-            heightDimension: .absolute(axis == .vertical ? itemExtent : totalExtent)
+            widthDimension: isVertical ? .absolute(totalExtent) : groupMainDimension,
+            heightDimension: isVertical ? groupMainDimension : .absolute(totalExtent)
         )
         // subitems 保留指定尺寸；带 count 的重复 group 会重新分配尺寸。
         let group: NSCollectionLayoutGroup
@@ -137,17 +151,17 @@ enum UIKitGridLayoutBuilder {
         section.contentInsets = insets
 
         var supplementaryItems: [NSCollectionLayoutBoundarySupplementaryItem] = []
-        if headerExtent > 0 {
+        if let headerSize {
             supplementaryItems.append(boundary(
-                extent: headerExtent, axis: axis,
+                size: headerSize, crossExtent: available, axis: axis,
                 kind: UICollectionView.elementKindSectionHeader,
                 alignment: axis == .vertical ? .top : .leading,
                 pinned: pinnedViews.contains(.sectionHeaders)
             ))
         }
-        if footerExtent > 0 {
+        if let footerSize {
             supplementaryItems.append(boundary(
-                extent: footerExtent, axis: axis,
+                size: footerSize, crossExtent: available, axis: axis,
                 kind: UICollectionView.elementKindSectionFooter,
                 alignment: axis == .vertical ? .bottom : .trailing,
                 pinned: pinnedViews.contains(.sectionFooters)
@@ -159,16 +173,18 @@ enum UIKitGridLayoutBuilder {
 
     /// 创建覆盖整个交叉轴、并具有指定主轴尺寸的分区边界辅助布局项。
     private static func boundary(
-        extent: CGFloat,
+        size: UIKitGridSize,
+        crossExtent: CGFloat,
         axis: Axis,
         kind: String,
         alignment: NSRectAlignment,
         pinned: Bool
     ) -> NSCollectionLayoutBoundarySupplementaryItem {
+        let mainDimension = size.dimension(crossExtent: crossExtent, isVertical: axis == .vertical, uniformSiblings: false)
         let item = NSCollectionLayoutBoundarySupplementaryItem(
             layoutSize: NSCollectionLayoutSize(
-                widthDimension: axis == .vertical ? .fractionalWidth(1) : .absolute(extent),
-                heightDimension: axis == .vertical ? .absolute(extent) : .fractionalHeight(1)
+                widthDimension: axis == .vertical ? .fractionalWidth(1) : mainDimension,
+                heightDimension: axis == .vertical ? mainDimension : .fractionalHeight(1)
             ),
             elementKind: kind,
             alignment: alignment

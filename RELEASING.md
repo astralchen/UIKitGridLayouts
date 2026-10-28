@@ -11,6 +11,18 @@
 5. 检查工作区和将发布的提交，排除构建缓存、个人 Xcode 设置、签名资料和 `.xcresult`。
 6. 确定版本号，将 CHANGELOG 的“未发布”条目归入该版本；完成验证后，再为对应提交创建版本标签和 GitHub Release。
 
+## 未发布：统一主轴尺寸
+
+2026-10-28，开发分支源码新增 UIKitGridSize 以及统一的 itemSize/headerSize/footerSize；这是不兼容 API 调整，尚未创建版本标签或发布。
+
+- iPhone 17 Pro / iOS 26.5：包测试 34 通过、0 失败，新增 15 项尺寸策略集成测试。
+- 同一模拟器：示例 App 集成测试 5 通过、0 失败，包含实际 UILabel 在两个方向的内容增减、固定、uniform 与比例切换。
+- self-sizing 测试通过 UIWindow、完整 Auto Layout 约束与 preferred fitting attributes 触发实际测量。
+- Xcode 26.6 工具链，以 Swift 6 模式和 arm64-apple-ios15.0-simulator 目标，对全部库源码 typecheck 通过；不等于 iOS 15 运行时验收。
+- iOS 15 目标导出模块和客户端类型检查通过：fixed/estimated/aspectRatio 无需版本判断，uniform 在 #available(iOS 17.0, *) 内可使用；无版本判断的 uniform 调用按预期编译报错。
+- 示例 App 实际启动并查看纵向 estimated、纵向 uniform（增加内容）和横向 uniform 页面，新增真实截图。
+- 未执行完整 UI 自动化套件或 iOS 15 运行时测试。旧版本记录仅描述对应历史版本。
+
 ## 0.2.0：独立分区 API
 
 2026-10-28 新增纵向和横向 `makeSection`、分区内边距，以及多分区组合示例。

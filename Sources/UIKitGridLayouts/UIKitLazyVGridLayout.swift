@@ -6,7 +6,7 @@ import UIKit
 /// 列定义，并根据布局环境的有效宽度重新计算列宽和自适应列数量。
 ///
 /// 此类型借鉴 SwiftUI LazyVGrid 的参数组织方式。单元格与辅助视图由
-/// UICollectionViewDataSource 提供；本布局使用固定行高，不根据单元格内容测量行高。
+/// UICollectionViewDataSource 提供；itemSize 支持固定高度、内容自适应高度与宽高比。
 /// 创建与使用布局时应遵循 UIKit 的主线程隔离要求。
 public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
     /// 未指定轨道间距或行间距时使用的默认值，单位为点。
@@ -25,11 +25,9 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
     ///   - spacing: 相邻行之间的间距，单位为点。也用于页眉与内容之间及分区末尾的留白。
     ///     必须是有限非负数；nil 使用 ``defaultSpacing``。
     ///   - pinnedViews: 需要吸附到可见边界的分区辅助视图，默认值为空集合。
-    ///   - rowHeight: 每行单元格的高度，单位为点。必须是有限正数，默认值为 56。
-    ///   - headerHeight: 分区页眉高度，单位为点。必须是有限非负数；默认值为 0，
-    ///     表示不创建页眉布局项。大于 0 时，数据源必须提供 elementKindSectionHeader 视图。
-    ///   - footerHeight: 分区页脚高度，单位为点。必须是有限非负数；默认值为 0，
-    ///     表示不创建页脚布局项。大于 0 时，数据源必须提供 elementKindSectionFooter 视图。
+    ///   - itemSize: 主轴尺寸策略，默认 .fixed(56)。支持 .estimated、.uniform（iOS 17+）和 .aspectRatio（宽 ÷ 高）。
+    ///   - headerSize: 页眉主轴尺寸策略；nil（默认）不创建页眉，非 nil 时数据源必须提供页眉。
+    ///   - footerSize: 页脚主轴尺寸策略；nil（默认）不创建页脚，非 nil 时数据源必须提供页脚。
     ///   - contentInsetsReference: 布局内边距的参考边界，默认值为 safeArea。
     /// - Important: 空列数组或无效尺寸、间距会触发前置条件失败。
     public init(
@@ -37,9 +35,9 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
         alignment: UIKitGridAlignment = .center,
         spacing: CGFloat? = nil,
         pinnedViews: UIKitPinnedScrollableViews = [],
-        rowHeight: CGFloat = 56,
-        headerHeight: CGFloat = 0,
-        footerHeight: CGFloat = 0,
+        itemSize: UIKitGridSize = .fixed(56),
+        headerSize: UIKitGridSize? = nil,
+        footerSize: UIKitGridSize? = nil,
         contentInsetsReference: UIContentInsetsReference = .safeArea
     ) {
         let configuration = UICollectionViewCompositionalLayoutConfiguration()
@@ -49,7 +47,7 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
                 tracks: columns, axis: .vertical,
                 alignmentFraction: alignment.offsetFraction,
                 spacing: spacing, pinnedViews: pinnedViews,
-                itemExtent: rowHeight, headerExtent: headerHeight, footerExtent: footerHeight
+                itemSize: itemSize, headerSize: headerSize, footerSize: footerSize
             ),
             configuration: configuration
         )
@@ -68,30 +66,30 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
     ///   - alignment: 整组列在剩余宽度内的对齐方式，默认值为 center。
     ///   - spacing: 主轴组间距，单位为点。必须是有限非负数；nil 使用 ``defaultSpacing``。
     ///   - pinnedViews: 页眉与页脚的吸附选项，默认值为空集合。
-    ///   - rowHeight: 单元格在主轴上的固定尺寸，单位为点。必须是有限正数，默认值为 56。
-    ///   - headerHeight: 页眉在主轴上的尺寸，单位为点。必须是有限非负数；0 不创建页眉。
-    ///   - footerHeight: 页脚在主轴上的尺寸，单位为点。必须是有限非负数；0 不创建页脚。
+    ///   - itemSize: 主轴尺寸策略，默认 .fixed(56)。支持 .estimated、.uniform（iOS 17+）和 .aspectRatio（宽 ÷ 高）。
+    ///   - headerSize: 页眉主轴尺寸策略；nil（默认）不创建页眉，非 nil 时数据源必须提供页眉。
+    ///   - footerSize: 页脚主轴尺寸策略；nil（默认）不创建页脚，非 nil 时数据源必须提供页脚。
     ///   - contentInsets: 分区内边距；每项必须是有限非负数。nil 沿用布局初始化器的
     ///     主轴留白规则；非 nil 替换全部四边。leading / trailing 在轨道计算前扣除一次。
     ///   - environment: 外层 sectionProvider 本次收到的布局环境。
     /// - Returns: 按当前有效容器尺寸计算的网格分区。
     /// - Important: 创建后修改交叉轴 contentInsets 不会重新计算轨道；请通过参数传入。
-    ///   指定正数页眉或页脚尺寸时，数据源仍需提供对应的标准辅助视图。
+    ///   指定非 nil 页眉或页脚尺寸时，数据源仍需提供对应的标准辅助视图。
     public static func makeSection(
         columns: [UIKitGridItem],
         alignment: UIKitGridAlignment = .center,
         spacing: CGFloat? = nil,
         pinnedViews: UIKitPinnedScrollableViews = [],
-        rowHeight: CGFloat = 56,
-        headerHeight: CGFloat = 0,
-        footerHeight: CGFloat = 0,
+        itemSize: UIKitGridSize = .fixed(56),
+        headerSize: UIKitGridSize? = nil,
+        footerSize: UIKitGridSize? = nil,
         contentInsets: NSDirectionalEdgeInsets? = nil,
         environment: any NSCollectionLayoutEnvironment
     ) -> NSCollectionLayoutSection {
         UIKitGridLayoutBuilder.makeSection(
             tracks: columns, axis: .vertical, alignmentFraction: alignment.offsetFraction,
             spacing: spacing, pinnedViews: pinnedViews,
-            itemExtent: rowHeight, headerExtent: headerHeight, footerExtent: footerHeight,
+            itemSize: itemSize, headerSize: headerSize, footerSize: footerSize,
             contentInsets: contentInsets, environment: environment
         )
     }
