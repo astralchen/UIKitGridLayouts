@@ -52,8 +52,8 @@ final class ContainerInsetsTests: XCTestCase {
             spacing: 12,
             pinnedViews: [],
             itemSize: .fixed(56),
-            headerSize: nil,
-            footerSize: nil
+            header: nil,
+            footer: nil
         )
     }
 }

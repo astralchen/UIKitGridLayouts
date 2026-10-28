@@ -5,6 +5,19 @@ import XCTest
 /// 在 UIWindow 中触发真实 Auto Layout fitting，验证两个方向的公开入口。
 @MainActor
 final class MainAxisSizingTests: XCTestCase {
+    func testCustomBoundaryKindsReachDataSourceInBothAxesAndEntrypoints() throws {
+        for horizontal in [false, true] {
+            for factory in [false, true] {
+                let f = SizingFixture(horizontal: horizontal, size: .fixed(56), factory: factory,
+                                      boundary: .estimated(20), headerKind: "custom.title", footerKind: "custom.summary")
+                defer { f.close() }
+                XCTAssertEqual(f.main(try f.boundary("custom.title")), 75, accuracy: 1)
+                XCTAssertEqual(f.main(try f.boundary("custom.summary")), 65, accuracy: 1)
+                XCTAssertEqual(f.source.receivedKinds, ["custom.title", "custom.summary"])
+            }
+        }
+    }
+
     func testVerticalEstimatedCellsAndReload() throws { try checkEstimated(horizontal: false, factory: false) }
     func testHorizontalEstimatedCellsAndReload() throws { try checkEstimated(horizontal: true, factory: false) }
     func testVerticalEstimatedFactoryAndReload() throws { try checkEstimated(horizontal: false, factory: true) }
@@ -157,9 +170,12 @@ private final class SizingFixture {
     let collection: UICollectionView
     let window: UIWindow
     init(horizontal: Bool, size: UIKitGridSize, factory: Bool = false,
-         boundary: UIKitGridSize? = nil, adaptive: Bool = false) {
+         boundary: UIKitGridSize? = nil, adaptive: Bool = false,
+         headerKind: String = UICollectionView.elementKindSectionHeader,
+         footerKind: String = UICollectionView.elementKindSectionFooter) {
         self.horizontal = horizontal
         source.horizontal = horizontal
+        source.headerKind = headerKind
         let tracks = adaptive ? [UIKitGridItem(.adaptive(minimum: 90), spacing: 10)] : [
             UIKitGridItem(.fixed(100), spacing: 10), UIKitGridItem(.fixed(140), spacing: 10)
         ]
@@ -172,23 +188,23 @@ private final class SizingFixture {
                 let insets = NSDirectionalEdgeInsets(top: 20, leading: 20, bottom: 20, trailing: 20)
                 if horizontal {
                     return UIKitLazyHGridLayout.makeSection(rows: tracks, alignment: .top, spacing: 10,
-                        itemSize: size, headerSize: boundary, footerSize: boundary, contentInsets: insets, environment: env)
+                        itemSize: size, header: boundary.map { .init(elementKind: headerKind, size: $0) }, footer: boundary.map { .init(elementKind: footerKind, size: $0) }, contentInsets: insets, environment: env)
                 }
                 return UIKitLazyVGridLayout.makeSection(columns: tracks, alignment: .leading, spacing: 10,
-                    itemSize: size, headerSize: boundary, footerSize: boundary, contentInsets: insets, environment: env)
+                    itemSize: size, header: boundary.map { .init(elementKind: headerKind, size: $0) }, footer: boundary.map { .init(elementKind: footerKind, size: $0) }, contentInsets: insets, environment: env)
             }, configuration: config)
         } else if horizontal {
             layout = UIKitLazyHGridLayout(rows: tracks, alignment: .top, spacing: 10, itemSize: size,
-                headerSize: boundary, footerSize: boundary, contentInsetsReference: .none)
+                header: boundary.map { .init(elementKind: headerKind, size: $0) }, footer: boundary.map { .init(elementKind: footerKind, size: $0) }, contentInsetsReference: .none)
         } else {
             layout = UIKitLazyVGridLayout(columns: tracks, alignment: .leading, spacing: 10, itemSize: size,
-                headerSize: boundary, footerSize: boundary, contentInsetsReference: .none)
+                header: boundary.map { .init(elementKind: headerKind, size: $0) }, footer: boundary.map { .init(elementKind: footerKind, size: $0) }, contentInsetsReference: .none)
         }
         let rect = horizontal ? CGRect(x: 0, y: 0, width: 1200, height: 360) : CGRect(x: 0, y: 0, width: 360, height: 1200)
         collection = UICollectionView(frame: rect, collectionViewLayout: layout)
         collection.contentInsetAdjustmentBehavior = .never
         collection.register(SizingCell.self, forCellWithReuseIdentifier: "cell")
-        for kind in [UICollectionView.elementKindSectionHeader, UICollectionView.elementKindSectionFooter] {
+        for kind in [headerKind, footerKind] {
             collection.register(SizingBoundary.self, forSupplementaryViewOfKind: kind, withReuseIdentifier: "boundary")
         }
         collection.dataSource = source
@@ -224,6 +240,8 @@ private final class SizingFixture {
 @MainActor
 private final class SizingSource: NSObject, UICollectionViewDataSource {
     var horizontal = false
+    var headerKind = UICollectionView.elementKindSectionHeader
+    var receivedKinds: Set<String> = []
     var extents: [CGFloat] = [40, 110, 60, 80]
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int { extents.count }
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -236,7 +254,8 @@ private final class SizingSource: NSObject, UICollectionViewDataSource {
                         at indexPath: IndexPath) -> UICollectionReusableView {
         let view = collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "boundary", for: indexPath) as! SizingBoundary
         view.content.horizontal = horizontal
-        view.content.extent = kind == UICollectionView.elementKindSectionHeader ? 75 : 65
+        receivedKinds.insert(kind)
+        view.content.extent = kind == headerKind ? 75 : 65
         return view
     }
 }

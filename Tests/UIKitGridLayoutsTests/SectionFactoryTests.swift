@@ -5,6 +5,28 @@ import UIKitGridLayouts
 /// 使用公开 API 验证独立分区在组合布局中的实际尺寸。
 @MainActor
 final class SectionFactoryTests: XCTestCase {
+    func testBoundaryRoleDeterminesAlignmentAndPinningIndependentlyOfKind() {
+        for horizontal in [false, true] {
+            for enabled in [false, true] {
+                let header: UIKitGridBoundaryItem? = enabled ? .init(elementKind: "custom.title", size: .fixed(32)) : nil
+                let footer = UIKitGridBoundaryItem(elementKind: "custom.summary", size: .fixed(20))
+                let section = horizontal
+                    ? UIKitLazyHGridLayout.makeSection(rows: [UIKitGridItem(.flexible())],
+                        pinnedViews: [.sectionHeaders], header: header, footer: footer, environment: SectionEnvironment())
+                    : UIKitLazyVGridLayout.makeSection(columns: [UIKitGridItem(.flexible())],
+                        pinnedViews: [.sectionHeaders], header: header, footer: footer, environment: SectionEnvironment())
+                let items = section.boundarySupplementaryItems
+                XCTAssertEqual(items.map(\.elementKind), enabled ? ["custom.title", "custom.summary"] : ["custom.summary"])
+                XCTAssertEqual(items.last?.alignment, horizontal ? .trailing : .bottom)
+                XCTAssertEqual(items.last?.pinToVisibleBounds, false)
+                if enabled {
+                    XCTAssertEqual(items.first?.alignment, horizontal ? .leading : .top)
+                    XCTAssertEqual(items.first?.pinToVisibleBounds, true)
+                }
+            }
+        }
+    }
+
     func testVerticalSectionsUseIndependentDefinitionsAndInsets() throws {
         let frames = try itemFrames(horizontal: false) { index, environment in
             if index == 0 {
@@ -75,7 +97,7 @@ final class SectionFactoryTests: XCTestCase {
     func testSectionCustomizationAndSupplementariesAreIndependent() throws {
         let first = UIKitLazyVGridLayout.makeSection(
             columns: [UIKitGridItem(.flexible())], spacing: 12,
-            pinnedViews: [.sectionHeaders, .sectionFooters], headerSize: .fixed(32), footerSize: .fixed(20),
+            pinnedViews: [.sectionHeaders, .sectionFooters], header: .init(elementKind: UICollectionView.elementKindSectionHeader, size: .fixed(32)), footer: .init(elementKind: UICollectionView.elementKindSectionFooter, size: .fixed(20)),
             environment: SectionEnvironment()
         )
         let second = UIKitLazyVGridLayout.makeSection(

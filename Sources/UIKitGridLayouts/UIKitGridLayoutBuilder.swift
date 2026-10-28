@@ -19,8 +19,8 @@ enum UIKitGridLayoutBuilder {
     ///   - spacing: 主轴方向的组间距；nil 使用 defaultSpacing。
     ///   - pinnedViews: 页眉与页脚的吸附选项。
     ///   - itemSize: 单元格在主轴上的尺寸策略。
-    ///   - headerSize: 页眉在主轴上的尺寸策略；nil 表示不创建页眉布局项。
-    ///   - footerSize: 页脚在主轴上的尺寸策略；nil 表示不创建页脚布局项。
+    ///   - header: 页眉的 kind 与主轴尺寸配置；nil 表示不创建页眉布局项。
+    ///   - footer: 页脚的 kind 与主轴尺寸配置；nil 表示不创建页脚布局项。
     /// - Returns: 为每个分区应用相同轨道定义的布局提供器。
     static func provider(
         tracks definitions: [UIKitGridItem],
@@ -29,13 +29,13 @@ enum UIKitGridLayoutBuilder {
         spacing: CGFloat?,
         pinnedViews: UIKitPinnedScrollableViews,
         itemSize: UIKitGridSize,
-        headerSize: UIKitGridSize?,
-        footerSize: UIKitGridSize?
+        header: UIKitGridBoundaryItem?,
+        footer: UIKitGridBoundaryItem?
     ) -> UICollectionViewCompositionalLayoutSectionProvider {
         precondition(!definitions.isEmpty, "At least one row or column is required.")
         itemSize.validate()
-        headerSize?.validate()
-        footerSize?.validate()
+        header?.size.validate()
+        footer?.size.validate()
         let lineSpacing = spacing ?? defaultSpacing
         precondition(lineSpacing.isFinite && lineSpacing >= 0)
         validate(definitions)
@@ -44,7 +44,7 @@ enum UIKitGridLayoutBuilder {
             makeSection(
                 tracks: definitions, axis: axis, alignmentFraction: alignmentFraction,
                 spacing: lineSpacing, pinnedViews: pinnedViews,
-                itemSize: itemSize, headerSize: headerSize, footerSize: footerSize,
+                itemSize: itemSize, header: header, footer: footer,
                 environment: environment
             )
         }
@@ -58,15 +58,15 @@ enum UIKitGridLayoutBuilder {
         spacing: CGFloat?,
         pinnedViews: UIKitPinnedScrollableViews,
         itemSize: UIKitGridSize,
-        headerSize: UIKitGridSize?,
-        footerSize: UIKitGridSize?,
+        header: UIKitGridBoundaryItem?,
+        footer: UIKitGridBoundaryItem?,
         contentInsets: NSDirectionalEdgeInsets? = nil,
         environment: any NSCollectionLayoutEnvironment
     ) -> NSCollectionLayoutSection {
         precondition(!definitions.isEmpty, "At least one row or column is required.")
         itemSize.validate()
-        headerSize?.validate()
-        footerSize?.validate()
+        header?.size.validate()
+        footer?.size.validate()
         let lineSpacing = spacing ?? defaultSpacing
         precondition(lineSpacing.isFinite && lineSpacing >= 0)
         validate(definitions)
@@ -81,8 +81,8 @@ enum UIKitGridLayoutBuilder {
         // 分区内边距独立于容器安全区域；只扣除调用方指定的交叉轴留白。
         let container = environment.container.effectiveContentSize
         let insets = contentInsets ?? NSDirectionalEdgeInsets(
-            top: axis == .vertical && headerSize != nil ? lineSpacing : 0,
-            leading: axis == .horizontal && headerSize != nil ? lineSpacing : 0,
+            top: axis == .vertical && header != nil ? lineSpacing : 0,
+            leading: axis == .horizontal && header != nil ? lineSpacing : 0,
             bottom: axis == .vertical ? lineSpacing : 0,
             trailing: axis == .horizontal ? lineSpacing : 0
         )
@@ -151,18 +151,18 @@ enum UIKitGridLayoutBuilder {
         section.contentInsets = insets
 
         var supplementaryItems: [NSCollectionLayoutBoundarySupplementaryItem] = []
-        if let headerSize {
+        if let header {
             supplementaryItems.append(boundary(
-                size: headerSize, crossExtent: available, axis: axis,
-                kind: UICollectionView.elementKindSectionHeader,
+                size: header.size, crossExtent: available, axis: axis,
+                kind: header.elementKind,
                 alignment: axis == .vertical ? .top : .leading,
                 pinned: pinnedViews.contains(.sectionHeaders)
             ))
         }
-        if let footerSize {
+        if let footer {
             supplementaryItems.append(boundary(
-                size: footerSize, crossExtent: available, axis: axis,
-                kind: UICollectionView.elementKindSectionFooter,
+                size: footer.size, crossExtent: available, axis: axis,
+                kind: footer.elementKind,
                 alignment: axis == .vertical ? .bottom : .trailing,
                 pinned: pinnedViews.contains(.sectionFooters)
             ))

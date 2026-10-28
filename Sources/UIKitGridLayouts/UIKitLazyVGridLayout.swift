@@ -27,8 +27,8 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
     ///     必须是有限非负数；nil 使用 ``defaultSpacing``。
     ///   - pinnedViews: 需要吸附到可见边界的分区辅助视图，默认值为空集合。
     ///   - itemSize: 主轴尺寸策略，默认 .fixed(56)。支持 .estimated、.uniform（iOS 17+）和 .aspectRatio（宽 ÷ 高）。
-    ///   - headerSize: 页眉主轴尺寸策略；nil（默认）不创建页眉，非 nil 时数据源必须提供页眉。
-    ///   - footerSize: 页脚主轴尺寸策略；nil（默认）不创建页脚，非 nil 时数据源必须提供页脚。
+    ///   - header: 页眉配置，包含显式 elementKind 与主轴 size；nil（默认）不创建页眉。注册和数据源须使用相同 kind。
+    ///   - footer: 页脚配置，包含显式 elementKind 与主轴 size；nil（默认）不创建页脚。注册和数据源须使用相同 kind。
     ///   - contentInsetsReference: 布局内边距的参考边界，默认值为 safeArea。
     /// - Important: 空列数组或无效尺寸、间距会触发前置条件失败。
     public init(
@@ -37,8 +37,8 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
         spacing: CGFloat? = nil,
         pinnedViews: UIKitPinnedScrollableViews = [],
         itemSize: UIKitGridSize = .fixed(56),
-        headerSize: UIKitGridSize? = nil,
-        footerSize: UIKitGridSize? = nil,
+        header: UIKitGridBoundaryItem? = nil,
+        footer: UIKitGridBoundaryItem? = nil,
         contentInsetsReference: UIContentInsetsReference = .safeArea
     ) {
         let configuration = UICollectionViewCompositionalLayoutConfiguration()
@@ -48,7 +48,7 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
                 tracks: columns, axis: .vertical,
                 alignmentFraction: alignment.offsetFraction,
                 spacing: spacing, pinnedViews: pinnedViews,
-                itemSize: itemSize, headerSize: headerSize, footerSize: footerSize
+                itemSize: itemSize, header: header, footer: footer
             ),
             configuration: configuration
         )
@@ -68,29 +68,29 @@ public final class UIKitLazyVGridLayout: UICollectionViewCompositionalLayout {
     ///   - spacing: 主轴组间距，单位为点。必须是有限非负数；nil 使用 ``defaultSpacing``。
     ///   - pinnedViews: 页眉与页脚的吸附选项，默认值为空集合。
     ///   - itemSize: 主轴尺寸策略，默认 .fixed(56)。支持 .estimated、.uniform（iOS 17+）和 .aspectRatio（宽 ÷ 高）。
-    ///   - headerSize: 页眉主轴尺寸策略；nil（默认）不创建页眉，非 nil 时数据源必须提供页眉。
-    ///   - footerSize: 页脚主轴尺寸策略；nil（默认）不创建页脚，非 nil 时数据源必须提供页脚。
+    ///   - header: 页眉配置，包含显式 elementKind 与主轴 size；nil（默认）不创建页眉。注册和数据源须使用相同 kind。
+    ///   - footer: 页脚配置，包含显式 elementKind 与主轴 size；nil（默认）不创建页脚。注册和数据源须使用相同 kind。
     ///   - contentInsets: 分区内边距；每项必须是有限非负数。nil 沿用布局初始化器的
     ///     主轴留白规则；非 nil 替换全部四边。leading / trailing 在轨道计算前扣除一次。
     ///   - environment: 外层 sectionProvider 本次收到的布局环境。
     /// - Returns: 按当前有效容器尺寸计算的网格分区。
     /// - Important: 创建后修改交叉轴 contentInsets 不会重新计算轨道；请通过参数传入。
-    ///   指定非 nil 页眉或页脚尺寸时，数据源仍需提供对应的标准辅助视图。
+    ///   指定非 nil 页眉或页脚配置时，数据源仍需提供对应 kind 的辅助视图。
     public static func makeSection(
         columns: [UIKitGridItem],
         alignment: UIKitGridHorizontalAlignment = .center,
         spacing: CGFloat? = nil,
         pinnedViews: UIKitPinnedScrollableViews = [],
         itemSize: UIKitGridSize = .fixed(56),
-        headerSize: UIKitGridSize? = nil,
-        footerSize: UIKitGridSize? = nil,
+        header: UIKitGridBoundaryItem? = nil,
+        footer: UIKitGridBoundaryItem? = nil,
         contentInsets: NSDirectionalEdgeInsets? = nil,
         environment: any NSCollectionLayoutEnvironment
     ) -> NSCollectionLayoutSection {
         UIKitGridLayoutBuilder.makeSection(
             tracks: columns, axis: .vertical, alignmentFraction: alignment.offsetFraction,
             spacing: spacing, pinnedViews: pinnedViews,
-            itemSize: itemSize, headerSize: headerSize, footerSize: footerSize,
+            itemSize: itemSize, header: header, footer: footer,
             contentInsets: contentInsets, environment: environment
         )
     }

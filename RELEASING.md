@@ -7,9 +7,22 @@
 1. 确认 `Package.swift` 仍声明 Swift tools 6.3、Swift 6 language mode 和最低 iOS 15。
 2. 在包含 Swift 6.3 或更新编译器的 Xcode 中运行 `bash Scripts/test.sh 'platform=iOS Simulator,id=实际UDID'`。记录 Xcode、编译器、运行系统和测试结果。
 3. 在示例 App 对比纵向与横向、上限、窄容器、混排顺序与对齐。算法或界面变化后，更新 README 的真实运行截图。
-4. 检查 README 的安装说明、公开 API 中文注释、兼容范围以及 CHANGELOG。保留 `Documentation/Screenshots/` 中 README 引用的全部图片（0.4.0 共 19 张）。
+4. 检查 README 的安装说明、公开 API 中文注释、兼容范围以及 CHANGELOG。保留 `Documentation/Screenshots/` 中 README 引用的全部图片（当前工作区共 21 张）。
 5. 检查工作区和将发布的提交，排除构建缓存、个人 Xcode 设置、签名资料和 `.xcresult`。
 6. 确定版本号，将 CHANGELOG 的“未发布”条目归入该版本；完成验证后，再为对应提交创建版本标签和 GitHub Release。
+
+## 0.5.0：显式边界辅助视图配置
+
+2026-10-28，新增 `UIKitGridBoundaryItem(elementKind:size:)`，用 `header` / `footer` 替代旧 `headerSize` / `footerSize`。不提供兼容重载或默认 kind；调用方显式选择标准或自定义名称。迁移说明见 README。
+
+- Xcode 27.1（27A9275）/ Swift 6.4；iPhone 17 Pro / iOS 26.5 模拟器。
+- 更新后的示例构建、安装、启动成功；全部 36 项库测试通过，0 失败、0 跳过。新增测试覆盖两个方向和两种入口的自定义 kind 实际数据源回调与 estimated 测量，以及配置为空、角色对应的位置与吸附标志。
+- 全部 8 项示例集成测试通过；新增 1 项 UI 测试通过，从首页打开自定义 Kind 页面，切换纵横方向和初始化器 / makeSection，核对实际辅助视图的可见性和 kind 文本。未执行其余完整 UI 自动化套件。
+- 新增 `custom-kinds-vertical.png` / `custom-kinds-horizontal.png`，并更新两张 `api-naming-*.png`。均实际启动 App 截取并逐张检查，分别保存于库与示例的 Documentation/Screenshots，由两个 README 引用。
+- 自定义 Kind 截图配置：单条 64 pt 轨道、3 个 48 pt 单元格、header/footer 为 72 pt、间距 8 pt、不吸附；页面可切换 makeSection。标准 kind 示例仍保留但均改为显式配置。
+- 全部库源码以 Swift 6 language mode、`arm64-apple-ios15.0-simulator` 目标导出模块成功；独立客户端使用新配置调用四个公开入口并进行类型检查，通过。uniform 在 iOS 17 可用性判断内使用。这是编译兼容性证据，不是 iOS 15 运行时验收。
+- 库与示例的 diff --check 通过。版本标签为 `0.5.0`；[GitHub Release](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.5.0) 提供破坏性变更、迁移和安装说明。示例同步固定到该标签对应的库提交。此次发布整理仅修改版本文档，源码、测试与截图沿用本节已验证内容。
+- 没有真机或 iOS 15 运行时验收结果；现有运行证据仅覆盖上述模拟器配置。
 
 ## 0.4.0：SwiftUI 风格的对齐类型命名
 

@@ -1,5 +1,12 @@
 # 更新记录
 
+## 0.5.0 — 2026-10-28
+
+- 不兼容调整：移除 VGrid/HGrid 初始化器及 makeSection 的 headerSize/footerSize；使用 header/footer 可选配置，默认 nil，无兼容重载。
+- 新增 UIKitGridBoundaryItem(elementKind:size:)，kind 必填且非空，尺寸复用 UIKitGridSize。Builder 不再内置标准 header/footer kind；标准名称也需调用方显式传入。
+- 吸附与边界位置按 header/footer 角色决定，与 kind 字符串无关；最低 iOS 15，uniform 的 iOS 17 限制不变。
+- 同步迁移所有现有示例和测试，增加纵横方向、初始化器与分区工厂的自定义 kind 示例及真实运行截图。迁移与验证范围见 README / RELEASING。
+
 ## 0.4.0 — 2026-10-28
 
 - 不兼容 API 调整：`UIKitGridAlignment` 重命名为 `UIKitGridHorizontalAlignment`，不保留旧名别名；VGrid 的初始化器和 `makeSection` 同步更新。HGrid 保持 `rows:` 与 `UIKitGridVerticalAlignment`，VGrid 保持 `columns:`，两个方向均使用 `alignment:`，参照 SwiftUI 的命名。
