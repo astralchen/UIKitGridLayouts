@@ -1,0 +1,107 @@
+import XCTest
+@testable import UIKitGridLayouts
+
+@MainActor
+final class TrackResolutionTests: XCTestCase {
+    private var mixed: [UIKitGridItem] {
+        [UIKitGridItem(.fixed(70), spacing: 12),
+         UIKitGridItem(.flexible(minimum: 80, maximum: 140), spacing: 12),
+         UIKitGridItem(.adaptive(minimum: 60), spacing: 12)]
+    }
+
+    func testMixedAdaptiveExpansionThreshold() {
+        let below = UIKitGridLayoutBuilder.resolve(mixed, availableExtent: 357.98)
+        XCTAssertEqual(below.count, 3)
+        XCTAssertEqual(below[2].extent, 131.99, accuracy: 0.001)
+        let at = UIKitGridLayoutBuilder.resolve(mixed, availableExtent: 358)
+        XCTAssertEqual(at.map(\.extent), [70, 132, 60, 60])
+        XCTAssertEqual(at.map(\.spacing), [12, 12, 12, 0])
+        let above = UIKitGridLayoutBuilder.resolve(mixed, availableExtent: 358.02)
+        XCTAssertEqual(above.count, 4)
+        XCTAssertEqual(above[2].extent, 60.005, accuracy: 0.001)
+    }
+
+    func testMixedFlexibleMaximumGivesRemainingSpaceToAdaptive() {
+        let result = UIKitGridLayoutBuilder.resolve(mixed, availableExtent: 400)
+        XCTAssertEqual(result.map(\.extent), [70, 140, 77, 77])
+        XCTAssertEqual(result.reduce(0) { $0 + $1.extent + $1.spacing }, 400)
+    }
+
+    func testFixedIsReservedEvenWhenDeclaredLast() {
+        let reordered = [mixed[1], mixed[2], mixed[0]]
+        let result = UIKitGridLayoutBuilder.resolve(reordered, availableExtent: 400)
+        XCTAssertEqual(result.map(\.extent), [140, 77, 77, 70])
+    }
+
+    func testNonFixedDeclarationOrderAffectsAllocation() {
+        let adaptiveFirst = [mixed[0], mixed[2], mixed[1]]
+        let result = UIKitGridLayoutBuilder.resolve(adaptiveFirst, availableExtent: 400)
+        // adaptive reserves 153 before flexible is capped at 140; 13 pt remains unused.
+        XCTAssertEqual(result.map(\.extent), [70, 70.5, 70.5, 140])
+        XCTAssertEqual(result.reduce(0) { $0 + $1.extent + $1.spacing }, 387)
+    }
+
+    func testMixedNarrowContainerPreservesFixedAndFlexibleMinimum() {
+        let result = UIKitGridLayoutBuilder.resolve(mixed, availableExtent: 200)
+        XCTAssertEqual(result.map(\.extent), [70, 80, 26])
+        // Exhausted space: package policy keeps a finite positive adaptive extent.
+        let overflow = UIKitGridLayoutBuilder.resolve(mixed, availableExtent: 100)
+        XCTAssertEqual(overflow.map(\.extent), [70, 80, 1])
+        XCTAssertEqual(overflow.reduce(0) { $0 + $1.extent + $1.spacing }, 175)
+    }
+
+    func testMixedMaximumCapsLeaveUnusedSpace() {
+        let columns = [mixed[0],
+                       UIKitGridItem(.flexible(minimum: 80, maximum: 112), spacing: 12),
+                       UIKitGridItem(.adaptive(minimum: 60, maximum: 64), spacing: 12)]
+        let result = UIKitGridLayoutBuilder.resolve(columns, availableExtent: 340)
+        XCTAssertEqual(result.map(\.extent), [70, 112, 61, 61])
+        let capped = UIKitGridLayoutBuilder.resolve(columns, availableExtent: 350)
+        XCTAssertEqual(capped.map(\.extent), [70, 112, 64, 64])
+        XCTAssertEqual(capped.reduce(0) { $0 + $1.extent + $1.spacing }, 346)
+    }
+
+    func testMultipleAdaptiveDefinitionsKeepTheirOwnGaps() {
+        let columns = [UIKitGridItem(.fixed(40), spacing: 4),
+                       UIKitGridItem(.adaptive(minimum: 40), spacing: 8),
+                       UIKitGridItem(.flexible(minimum: 50, maximum: 60), spacing: 12),
+                       UIKitGridItem(.adaptive(minimum: 30), spacing: 6)]
+        let result = UIKitGridLayoutBuilder.resolve(columns, availableExtent: 364)
+        XCTAssertEqual(result.map(\.extent), [40, 46, 46, 60, 30.5, 30.5, 30.5, 30.5])
+        XCTAssertEqual(result.map(\.spacing), [4, 8, 8, 12, 6, 6, 6, 0])
+        XCTAssertEqual(result.reduce(0) { $0 + $1.extent + $1.spacing }, 364)
+    }
+
+    func testAdaptiveThresholdIncludesSpacing() {
+        let columns = [UIKitGridItem(.adaptive(minimum: 80), spacing: 12)]
+        XCTAssertEqual(UIKitGridLayoutBuilder.resolve(columns, availableExtent: 263).count, 2)
+        let atThreshold = UIKitGridLayoutBuilder.resolve(columns, availableExtent: 264)
+        XCTAssertEqual(atThreshold.count, 3)
+        XCTAssertEqual(atThreshold[0].extent, 80)
+        XCTAssertEqual(atThreshold.last?.spacing, 0)
+    }
+
+    func testFixedAndFlexibleHaveIndependentBounds() {
+        let columns = [
+            UIKitGridItem(.fixed(100), spacing: 10),
+            UIKitGridItem(.flexible(minimum: 40, maximum: 70), spacing: 20),
+            UIKitGridItem(.flexible(minimum: 40))
+        ]
+        let result = UIKitGridLayoutBuilder.resolve(columns, availableExtent: 350)
+        XCTAssertEqual(result.map(\.extent), [100, 70, 150])
+        XCTAssertEqual(result.map(\.spacing), [10, 20, 0])
+    }
+
+    func testAdaptiveMaximumLeavesUnusedSpace() {
+        let rows = [UIKitGridItem(.adaptive(minimum: 80, maximum: 112), spacing: 12)]
+        let result = UIKitGridLayoutBuilder.resolve(rows, availableExtent: 260)
+        XCTAssertEqual(result.map(\.extent), [112, 112])
+    }
+
+    func testNarrowContainerPolicy() {
+        let adaptive = UIKitGridLayoutBuilder.resolve([UIKitGridItem(.adaptive(minimum: 80))], availableExtent: 40)
+        XCTAssertEqual(adaptive.map(\.extent), [40])
+        let flexible = UIKitGridLayoutBuilder.resolve([UIKitGridItem(.flexible(minimum: 80))], availableExtent: 40)
+        XCTAssertEqual(flexible.map(\.extent), [80])
+    }
+}
