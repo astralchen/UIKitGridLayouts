@@ -167,7 +167,7 @@ let section = UIKitLazyHGridLayout.makeSection(
 - 每次 provider 回调使用当次 `environment` 重新创建分区，以响应容器尺寸变化。
 - 一个 layout 只有一个整体滚动方向。V/H 工厂分别按纵向/横向宿主的有效宽度/高度计算；不能直接混用两者就获得独立滚动方向。局部横向轮播可像示例中那样使用原生 `orthogonalScrollingBehavior` 分区。
 
-示例 App 的“多分区”入口展示 fixed、flexible、adaptive、混排和原生横向轮播五个独立分区。
+示例 App 的“多分区”入口可切换纵向与横向，展示 fixed、flexible、adaptive、混排和原生正交轮播五个独立分区。
 
 | 独立页眉页脚与分区背景 | 吸附配置与原生横向轮播 |
 | :---: | :---: |
@@ -179,7 +179,7 @@ let section = UIKitLazyHGridLayout.makeSection(
 
 ### 每个分区独立配置辅助视图与背景
 
-“多分区”页同时演示以下配置；页眉和页脚文本直接标明吸附状态，背景使用不同颜色区分分区。分区包含足够多的单元格，可上下滚动观察辅助视图在所属分区范围内的吸附和离开。
+“多分区”页在纵向模式演示以下配置；页眉和页脚文本直接标明吸附状态，背景使用不同颜色区分分区。分区包含足够多的单元格，可上下滚动观察辅助视图在所属分区范围内的吸附和离开。
 
 | 分区 | Header 高度 | Footer 高度 | 吸附选项 | 背景 |
 | --- | ---: | ---: | --- | --- |
@@ -249,6 +249,62 @@ return view
 - `pinToVisibleBounds` 相对集合视图的可见边界生效，并受所属分区范围约束；页脚吸底不是固定在整个屏幕底部的工具栏。
 - 原生轮播 section 直接创建自己的 boundary supplementary items；它与网格 section 共用注册和数据源机制。
 - 将某个 headerSize/footerSize 设为 nil 可省略对应布局项；不要对未注册的 kind 创建布局项。
+
+
+### 横向多分区
+
+“多分区”页面顶部可切换 **纵向 VGrid / 横向 HGrid**。横向模式使用同一个水平滚动的集合视图，每个分区通过 `UIKitLazyHGridLayout.makeSection(rows:...)` 独立配置。切换方向会重建布局并回到起点；单元格第二行显示当前实测行高。
+
+| 分区 | Header 宽度 | Footer 宽度 | 吸附行为 | 背景 |
+| --- | ---: | ---: | --- | --- |
+| fixed：3 行 × 72 | 72 pt | 52 pt | 不吸附 | 蓝色 |
+| flexible：2 行均分 | 64 pt | 60 pt | Header 吸附起始边缘 | 青色 |
+| adaptive：minimum 85 | 56 pt | 64 pt | Footer 吸附结束边缘 | 橙色 |
+| 混排 | 80 pt | 56 pt | 起始、结束双吸附 | 紫色 |
+| UIKit 原生纵向轮播 | 64 pt | 52 pt | 不吸附 | 粉色 |
+
+```swift
+let configuration = UICollectionViewCompositionalLayoutConfiguration()
+configuration.scrollDirection = .horizontal
+configuration.interSectionSpacing = 16
+
+let layout = UICollectionViewCompositionalLayout(
+    sectionProvider: { sectionIndex, environment in
+        // 不同分区可使用不同 rows、itemSize、headerSize 和 footerSize。
+        let section = UIKitLazyHGridLayout.makeSection(
+            rows: [UIKitGridItem(.fixed(60)), UIKitGridItem(.flexible(minimum: 70))],
+            alignment: .top,
+            spacing: 12,
+            pinnedViews: [.sectionHeaders, .sectionFooters],
+            itemSize: .fixed(80),       // 列宽
+            headerSize: .fixed(72),    // 页眉宽度
+            footerSize: .fixed(56),    // 页脚宽度
+            contentInsets: .init(top: 16, leading: 8, bottom: 16, trailing: 12),
+            environment: environment
+        )
+        let background = NSCollectionLayoutDecorationItem.background(
+            elementKind: SectionBackgroundView.elementKind
+        )
+        background.contentInsets = .init(top: 8, leading: 0, bottom: 8, trailing: 0)
+        background.zIndex = -1
+        section.decorationItems = [background]
+        return section
+    },
+    configuration: configuration
+)
+layout.register(SectionBackgroundView.self,
+                forDecorationViewOfKind: SectionBackgroundView.elementKind)
+```
+
+上例中的 `SectionBackgroundView` 是示例 App 类型。Header/footer 仍按标准 supplementary kind 注册并由数据源提供；横向页眉位于 `.leading`，页脚位于 `.trailing`，吸附相对集合视图的可见边界生效，不是全屏固定侧栏。原生轮播分区使用正交滚动，因宿主为横向，此处局部沿纵向滚动。
+
+Debug 启动参数 `--grid-sections --grid-axis horizontal` 可直接进入横向页面。以下截图为 **iPhone 17 Pro / iOS 26.5 模拟器**的真实运行画面，默认文字大小、从左至右布局；纵向截图见上方。
+
+| fixed：独立页眉页脚宽度 | flexible：页眉起始吸附 |
+| :---: | :---: |
+| <img src="Documentation/Screenshots/multi-sections-horizontal-start.jpg" alt="横向固定分区的独立页眉页脚宽度与背景" width="320"> | <img src="Documentation/Screenshots/multi-sections-horizontal-header.jpg" alt="横向 flexible 分区页眉吸附在起始边缘" width="320"> |
+| **adaptive：页脚结束吸附** | **混排双吸附与原生纵向轮播** |
+| <img src="Documentation/Screenshots/multi-sections-horizontal-footer.jpg" alt="横向 adaptive 分区页脚吸附在结束边缘" width="320"> | <img src="Documentation/Screenshots/multi-sections-horizontal-end.jpg" alt="横向混排的双边吸附及原生纵向轮播" width="320"> |
 
 
 ## 混排规则
