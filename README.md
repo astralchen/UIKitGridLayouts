@@ -32,7 +32,7 @@ Swift tools 版本与 iOS 部署版本是独立要求。使用新编译器不要
 
 ## 安装
 
-**本文代码示例对应未发布的新 API。** 已发布的 0.2.0 仍使用旧参数名；试用新 API 请使用本地源码与 Add Local。下面的版本依赖说明用于安装已发布版本，不包含本次功能。
+**本文代码示例对应 0.3.0。** 此版本调整了主轴尺寸 API；从 0.2.x 升级时，请按下文迁移参数名和尺寸值。
 
 在 Xcode 选择 **File → Add Package Dependencies**，输入仓库地址：
 
@@ -40,14 +40,14 @@ Swift tools 版本与 iOS 部署版本是独立要求。使用新编译器不要
 https://github.com/astralchen/UIKitGridLayouts.git
 ```
 
-当前已发布版本为 [0.2.0](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.2.0)。在 Xcode 中选择 **Exact Version**，填写 `0.2.0`，然后将 `UIKitGridLayouts` 产品加入 App target。
+当前已发布版本为 [0.3.0](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.3.0)。在 Xcode 中选择 **Exact Version**，填写 `0.3.0`，然后将 `UIKitGridLayouts` 产品加入 App target。
 
-在另一个 Swift Package 中使用以下版本范围，允许更新到 `0.2.x`，不自动跨到 `0.3.0`：
+在另一个 Swift Package 中使用以下版本范围，允许更新到 `0.3.x`，不自动跨到 `0.4.0`：
 
 ```swift
 .package(
     url: "https://github.com/astralchen/UIKitGridLayouts.git",
-    .upToNextMinor(from: "0.2.0")
+    .upToNextMinor(from: "0.3.0")
 )
 ```
 
@@ -361,7 +361,7 @@ override func preferredLayoutAttributesFitting(
 
 内容更新后，调用方应通过 collection view 的 reload/reconfigure 等机制触发重新测量；本包不监听业务模型。比例模式会在布局环境变化时根据新的交叉轴尺寸重新计算。页眉页脚的比例使用分区可用的交叉轴尺寸，而不是某一条 cell 轨道。
 
-### 从旧 API 迁移（未发布）
+### 从 0.2.x 迁移到 0.3.0
 
 本次直接调整 API，不保留旧参数名重载：
 
@@ -372,7 +372,7 @@ override func preferredLayoutAttributesFitting(
 | `footerHeight: 24` / `footerWidth: 24` | `footerSize: .fixed(24)` |
 | 页眉/页脚尺寸 `0` | `nil` 或省略参数 |
 
-所有固定值、估计值和比例都必须是有限正数；`.fixed(0)` 不作为隐藏辅助视图的标记。新 API 已纳入开发分支源码，尚未发布版本标签；已发布的 0.2.0 不包含这些改动。
+所有固定值、估计值和比例都必须是有限正数；`.fixed(0)` 不作为隐藏辅助视图的标记。这些 API 从 0.3.0 起提供；0.2.x 使用旧参数名。
 
 ## 安全区域与对齐
 

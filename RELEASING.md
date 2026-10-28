@@ -7,13 +7,15 @@
 1. 确认 `Package.swift` 仍声明 Swift tools 6.3、Swift 6 language mode 和最低 iOS 15。
 2. 在包含 Swift 6.3 或更新编译器的 Xcode 中运行 `bash Scripts/test.sh 'platform=iOS Simulator,id=实际UDID'`。记录 Xcode、编译器、运行系统和测试结果。
 3. 在示例 App 对比纵向与横向、上限、窄容器、混排顺序与对齐。算法或界面变化后，更新 README 的真实运行截图。
-4. 检查 README 的安装说明、公开 API 中文注释、兼容范围以及 CHANGELOG。保留 `Documentation/Screenshots/` 中 README 引用的全部图片（0.2.0 共 10 张）。
+4. 检查 README 的安装说明、公开 API 中文注释、兼容范围以及 CHANGELOG。保留 `Documentation/Screenshots/` 中 README 引用的全部图片（0.3.0 共 13 张）。
 5. 检查工作区和将发布的提交，排除构建缓存、个人 Xcode 设置、签名资料和 `.xcresult`。
 6. 确定版本号，将 CHANGELOG 的“未发布”条目归入该版本；完成验证后，再为对应提交创建版本标签和 GitHub Release。
 
-## 未发布：统一主轴尺寸
+## 0.3.0：统一主轴尺寸
 
-2026-10-28，开发分支源码新增 UIKitGridSize 以及统一的 itemSize/headerSize/footerSize；这是不兼容 API 调整，尚未创建版本标签或发布。
+2026-10-28，0.3.0 新增 UIKitGridSize 以及统一的 itemSize/headerSize/footerSize；这是不兼容 API 调整，迁移方式见 README。
+
+版本标签为 `0.3.0`；[GitHub Release](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.3.0) 包含变更、迁移与安装说明。此次发布整理仅修改文档，Package.swift、Sources 和 Tests 与已验证的 `f06991f` 提交一致，沿用下述结果。
 
 - iPhone 17 Pro / iOS 26.5：包测试 34 通过、0 失败，新增 15 项尺寸策略集成测试。
 - 同一模拟器：示例 App 集成测试 5 通过、0 失败，包含实际 UILabel 在两个方向的内容增减、固定、uniform 与比例切换。

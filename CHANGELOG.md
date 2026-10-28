@@ -1,6 +1,6 @@
 # 更新记录
 
-## 未发布
+## 0.3.0 — 2026-10-28
 
 - 不兼容 API 调整：V/H 布局和分区工厂统一使用 `itemSize`、`headerSize`、`footerSize`；移除旧的 Height/Width 参数名。
 - 新增 `UIKitGridSize.fixed`、`.estimated`、`.aspectRatio` 和 iOS 17+ 的 `.uniform(estimated:)`。比例固定为宽 ÷ 高；cell 按各自轨道计算，group 使用最大主轴尺寸。
