@@ -11,7 +11,11 @@
 5. 检查工作区和将发布的提交，排除构建缓存、个人 Xcode 设置、签名资料和 `.xcresult`。
 6. 确定版本号，将 CHANGELOG 的“未发布”条目归入该版本；完成验证后，再为对应提交创建版本标签和 GitHub Release。
 
-当前仅准备仓库，未创建版本标签或 GitHub Release。版本发布前，README 使用 `main` 分支依赖，并说明固定 commit 的选择。
+## 0.1.0
+
+首个版本标签为 `0.1.0`，发布说明见 [GitHub Release](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.1.0)。README 使用从 `0.1.0` 开始的 next-minor 版本规则。
+
+本次版本整理只修改文档；`Package.swift`、`Sources` 和 `Tests` 与下述已验证的独立仓库提交一致，沿用该次构建和测试结果。示例仓库的 submodule 固定到 `0.1.0` 标签对应的提交。
 
 ## 验证记录
 

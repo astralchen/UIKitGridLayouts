@@ -6,6 +6,8 @@
 
 ## 运行效果
 
+可运行工程见 [GridItemSizeLayoutDemo](https://github.com/astralchen/GridItemSizeLayoutDemo)。克隆时使用 `--recurse-submodules`，示例通过 submodule 固定布局库版本。
+
 以下为示例 App 在 **iPhone 17 Pro / iOS 26.5 模拟器**上的真实运行截图。四种模式均使用“自适应”容器尺寸、居中对齐、12 pt 主轴间距，并关闭“上限 112”。单元格第二行显示实测列宽或行高。
 
 | 模式 | 纵向 VGrid：上方 SwiftUI，下方 UIKit | 横向 HGrid：左侧 SwiftUI，右侧 UIKit |
@@ -36,12 +38,15 @@ Swift tools 版本与 iOS 部署版本是独立要求。使用新编译器不要
 https://github.com/astralchen/UIKitGridLayouts.git
 ```
 
-将 `UIKitGridLayouts` 产品加入 App target。当前尚未发布版本标签，试用时选择 **Branch → main**；生产项目可先固定到经过验证的 commit。首次版本发布后再使用版本范围依赖。
+首个版本为 [0.1.0](https://github.com/astralchen/UIKitGridLayouts/releases/tag/0.1.0)。在 Xcode 中选择 **Exact Version**，填写 `0.1.0`，然后将 `UIKitGridLayouts` 产品加入 App target。
 
-在另一个 Swift Package 中使用：
+在另一个 Swift Package 中使用以下版本范围，允许更新到 `0.1.x`，不自动跨到 `0.2.0`：
 
 ```swift
-.package(url: "https://github.com/astralchen/UIKitGridLayouts.git", branch: "main")
+.package(
+    url: "https://github.com/astralchen/UIKitGridLayouts.git",
+    .upToNextMinor(from: "0.1.0")
+)
 ```
 
 然后为使用该库的 target 添加：
